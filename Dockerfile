@@ -3,7 +3,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# --include=dev: the Vite/TS/Tailwind build needs devDependencies. Coolify may
+# inject NODE_ENV=production at build time, which would otherwise make npm ci
+# skip them and break `npm run build`.
+RUN npm ci --include=dev
 
 COPY . .
 RUN npm run build

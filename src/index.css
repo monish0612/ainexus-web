@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #000000;
+  --bg1: #060608;
+  --bg2: rgba(255, 255, 255, 0.05);
+  --bg3: rgba(255, 255, 255, 0.08);
+  --bg4: rgba(255, 255, 255, 0.12);
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: rgba(255, 255, 255, 0.42);
+  --text4: rgba(255, 255, 255, 0.28);
+  --text5: rgba(255, 255, 255, 0.18);
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.05);
+  --header-bg: #000000;
+  --nav-bg: rgba(0, 0, 0, 0.97);
+  color-scheme: dark;
+}
+
+[data-theme='white'] {
+  --bg: #ffffff;
+  --bg1: #f8fafc;
+  --bg2: rgba(0, 0, 0, 0.04);
+  --bg3: rgba(0, 0, 0, 0.06);
+  --bg4: rgba(0, 0, 0, 0.09);
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: rgba(0, 0, 0, 0.55);
+  --text4: rgba(0, 0, 0, 0.38);
+  --text5: rgba(0, 0, 0, 0.25);
+  --border: rgba(0, 0, 0, 0.09);
+  --border2: rgba(0, 0, 0, 0.06);
+  --header-bg: #ffffff;
+  --nav-bg: rgba(255, 255, 255, 0.97);
+  color-scheme: light;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+/* Thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg4) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--bg4);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-bg2 backdrop-blur;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-bg2 px-4 py-3 text-fg outline-none transition placeholder:text-fg4 focus:border-accent;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-bg2 px-4 py-3 font-semibold text-fg transition hover:bg-bg3 active:scale-[0.98] disabled:opacity-50;
+  }
+}
+
+/* Rich markdown (news reader / AI answers) */
+.prose-nexus {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 1.02rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.prose-nexus h1,
+.prose-nexus h2,
+.prose-nexus h3 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.4em 0 0.5em;
+}
+.prose-nexus h1 { font-size: 1.6rem; }
+.prose-nexus h2 { font-size: 1.32rem; }
+.prose-nexus h3 { font-size: 1.12rem; }
+.prose-nexus p { margin: 0.7em 0; }
+.prose-nexus a { color: var(--accent, #0d59f2); text-decoration: underline; }
+.prose-nexus ul,
+.prose-nexus ol { margin: 0.7em 0; padding-left: 1.3em; }
+.prose-nexus li { margin: 0.3em 0; }
+.prose-nexus li::marker { color: var(--text3); }
+.prose-nexus blockquote {
+  border-left: 3px solid var(--bg4);
+  margin: 1em 0;
+  padding: 0.4em 0 0.4em 1em;
+  color: var(--text2);
+  background: var(--bg2);
+  border-radius: 0 12px 12px 0;
+}
+.prose-nexus img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  margin: 1.1em 0;
+  border: 1px solid var(--border);
+  display: block;
+}
+.prose-nexus pre {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.prose-nexus code {
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+}
+.prose-nexus :not(pre) > code {
+  background: var(--bg3);
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+}
+.prose-nexus hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.6em 0;
+}
+.prose-nexus table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  display: block;
+  overflow-x: auto;
+}
+.prose-nexus th,
+.prose-nexus td {
+  border: 1px solid var(--border);
+  padding: 0.5em 0.7em;
+  text-align: left;
+}

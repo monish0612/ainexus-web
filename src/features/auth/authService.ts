@@ -14,6 +14,8 @@ const MAX_SESSION_DAYS = 45;
 const UF = ['bW9u', 'aXNo'];
 const PF = ['Q2hlbm5h', 'aXN1cGVyLjIz'];
 
+import { sha256 } from 'js-sha256';
+
 const enc = new TextEncoder();
 
 function b64decode(s: string): string {
@@ -26,23 +28,43 @@ function toHex(bytes: Uint8Array): string {
     .join('');
 }
 
-async function hmacRaw(msg: Uint8Array): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey(
+function subtleCrypto(): SubtleCrypto | null {
+  // crypto.subtle only exists in a secure context (HTTPS or localhost). When
+  // the site is served over plain HTTP it's undefined — so we must not touch it.
+  return typeof crypto !== 'undefined' && crypto.subtle ? crypto.subtle : null;
+}
+
+async function hmacRawSubtle(
+  sub: SubtleCrypto,
+  msg: Uint8Array,
+): Promise<Uint8Array> {
+  const key = await sub.importKey(
     'raw',
     enc.encode(HMAC_KEY) as BufferSource,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
   );
-  const sig = await crypto.subtle.sign('HMAC', key, msg as BufferSource);
+  const sig = await sub.sign('HMAC', key, msg as BufferSource);
   return new Uint8Array(sig);
 }
 
-/** Double-pass HMAC-SHA256 (hex), matching the Dart implementation. */
+/**
+ * Double-pass HMAC-SHA256 (hex), matching the Dart implementation.
+ * Uses native Web Crypto in a secure context (HTTPS/localhost) and falls back
+ * to a pure-JS implementation over plain HTTP, where crypto.subtle is absent —
+ * so the login gate works regardless of how the site is served.
+ */
 async function hmac(input: string): Promise<string> {
-  const first = await hmacRaw(enc.encode(input));
-  const second = await hmacRaw(first);
-  return toHex(second);
+  const sub = subtleCrypto();
+  if (sub) {
+    const first = await hmacRawSubtle(sub, enc.encode(input));
+    const second = await hmacRawSubtle(sub, first);
+    return toHex(second);
+  }
+  const first = sha256.hmac.array(HMAC_KEY, input);
+  const second = sha256.hmac.array(HMAC_KEY, new Uint8Array(first));
+  return toHex(new Uint8Array(second));
 }
 
 function constantTimeEquals(a: string, b: string): boolean {

@@ -1,4 +1,5 @@
 import { api } from './client';
+import { uuid } from '@/lib/format';
 
 export interface Expense {
   id: string;
@@ -49,7 +50,7 @@ export async function fetchBudgetHistory(): Promise<BudgetEntry[]> {
 
 export async function setBudget(amount: number): Promise<void> {
   await api.post('/budget', {
-    id: crypto.randomUUID(),
+    id: uuid(),
     amount,
     setAt: new Date().toISOString(),
   });
@@ -64,7 +65,7 @@ export async function fetchSalaryHistory(): Promise<SalaryEntry[]> {
 
 export async function setSalary(month: string, amount: number): Promise<void> {
   await api.post('/salary', {
-    id: crypto.randomUUID(),
+    id: uuid(),
     month,
     amount,
     setAt: new Date().toISOString(),

@@ -7,7 +7,21 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
     <button
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(text);
+          // navigator.clipboard only exists in a secure context (HTTPS). Over
+          // plain HTTP it's undefined, so fall back to the legacy execCommand.
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         } catch {

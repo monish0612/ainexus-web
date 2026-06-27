@@ -1,6 +1,7 @@
 import { api } from './client';
 import { useSettingsStore } from '@/store/settingsStore';
 import { Source } from './news';
+import { uuid } from '@/lib/format';
 
 function modelArgs() {
   const s = useSettingsStore.getState();
@@ -165,7 +166,7 @@ export async function fetchSavedWords(): Promise<SavedWord[]> {
 
 export async function saveWord(d: DefineResult): Promise<void> {
   await api.post('/saved-words', {
-    id: crypto.randomUUID(),
+    id: uuid(),
     word: d.word,
     definition: d.definition,
     pronunciation: d.pronunciation,
@@ -207,7 +208,7 @@ export async function saveSearch(s: {
   result: SearchResult;
   mode: string;
 }): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = uuid();
   await api.post('/saved-searches', {
     id,
     kind: 'query',

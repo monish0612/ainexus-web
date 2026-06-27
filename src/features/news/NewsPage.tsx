@@ -8,6 +8,7 @@ import { Article } from '@/lib/api/news';
 import { useNews, useRefreshNews } from './hooks';
 import { ArticleCard } from './ArticleCard';
 import { ArticleReader } from './ArticleReader';
+import { selectNewsFeed } from './feed';
 
 type Tab = 'foryou' | 'saved';
 
@@ -18,11 +19,10 @@ export default function NewsPage() {
   const [category, setCategory] = useState<string>('All');
   const [active, setActive] = useState<Article | null>(null);
 
-  const filtered = useMemo(() => {
-    let list = tab === 'saved' ? articles.filter((a) => a.isSaved) : articles;
-    if (category !== 'All') list = list.filter((a) => a.category === category);
-    return list;
-  }, [articles, tab, category]);
+  const filtered = useMemo(
+    () => selectNewsFeed(articles, tab, category),
+    [articles, tab, category],
+  );
 
   const featured = tab === 'foryou' && category === 'All' ? filtered[0] : undefined;
   const rest = featured ? filtered.slice(1) : filtered;

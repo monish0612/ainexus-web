@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bookmark,
   BookmarkCheck,
+  CheckCircle2,
+  Circle,
   ExternalLink,
   Send,
   Sparkles,
@@ -37,23 +39,29 @@ export function ArticleReader({ article, onClose }: Props) {
   const open = !!article;
   return (
     <Modal open={open} onClose={onClose} variant="sheet" maxWidth="max-w-3xl">
-      {article && <ReaderBody article={article} />}
+      {article && <ReaderBody key={article.id} article={article} onClose={onClose} />}
     </Modal>
   );
 }
 
-function ReaderBody({ article }: { article: Article }) {
+function ReaderBody({ article, onClose }: { article: Article; onClose: () => void }) {
   const toggleSave = useToggleSave();
   const markRead = useMarkRead();
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+  // Read state is driven by an explicit "Mark read" action (like the Android
+  // app) — NOT by simply opening the article. Saving never marks it read.
+  const [read, setRead] = useState(article.isRead);
 
-  // Mark read on open.
-  useEffect(() => {
-    if (!article.isRead) markRead.mutate(article.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [article.id]);
+  function onMarkRead() {
+    if (read) return; // already read → the "Done" pill is a no-op, as on Android
+    setRead(true);
+    markRead.mutate(article.id);
+    // Briefly show the "Done" state, then close — mirrors the app's flow so the
+    // (now-read) article drops out of the For You list behind the sheet.
+    setTimeout(onClose, 300);
+  }
 
   async function onSummarize() {
     if (summary) {
@@ -151,6 +159,18 @@ function ReaderBody({ article }: { article: Article }) {
                 <span className="hidden sm:inline">Source</span>
               </a>
             )}
+
+            <button
+              onClick={onMarkRead}
+              className={`pill border ${
+                read
+                  ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
+                  : 'border-line bg-bg2 text-fg2'
+              }`}
+            >
+              {read ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+              <span className="hidden sm:inline">{read ? 'Done' : 'Mark read'}</span>
+            </button>
           </div>
 
           {/* Body */}

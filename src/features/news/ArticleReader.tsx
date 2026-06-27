@@ -207,18 +207,24 @@ function FollowUpChat({ article }: { article: Article }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Only auto-scroll to the latest message once the user actually starts a
+  // follow-up. Without this, opening an article (especially one with saved
+  // chats) would scroll the whole sheet to the bottom on load.
+  const interacted = useRef(false);
 
   useEffect(() => {
     if (serverMsgs) setMessages(serverMsgs);
   }, [serverMsgs]);
 
   useEffect(() => {
+    if (!interacted.current) return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, busy]);
 
   async function send() {
     const q = input.trim();
     if (!q || busy) return;
+    interacted.current = true;
     setInput('');
     const now = new Date().toISOString();
     const userMsg: ChatMessage = {

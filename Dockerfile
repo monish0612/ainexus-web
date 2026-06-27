@@ -20,7 +20,9 @@ FROM nginx:alpine
 # envsubst (for runtime API_UPSTREAM) ships in gettext.
 RUN apk add --no-cache gettext
 
-COPY --from=build /app/dist /usr/share/nginx/html
+# Served under /nexusai/, so the files live in a matching subdirectory
+# (URL /nexusai/assets/x.js -> /usr/share/nginx/html/nexusai/assets/x.js).
+COPY --from=build /app/dist /usr/share/nginx/html/nexusai
 COPY nginx.conf.template /etc/nginx/templates/nginx.conf.template
 COPY docker-entrypoint.sh /docker-entrypoint-nexus.sh
 RUN chmod +x /docker-entrypoint-nexus.sh

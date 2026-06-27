@@ -6,9 +6,13 @@ import axios, {
 import { getToken } from '@/features/auth/token';
 
 // All calls are same-origin: the Vite dev proxy / production nginx forward
-// `/api/*` to the backend, so there is no CORS or mixed-content problem.
+// `<base>/api/*` to the backend, so there is no CORS or mixed-content problem.
+// BASE_URL is the deploy subpath ('/nexusai/'), so this resolves to
+// '/nexusai/api/v1' and stays correct if the base path ever changes.
+export const API_BASE = `${import.meta.env.BASE_URL}api/v1`.replace(/([^:])\/{2,}/g, '$1/');
+
 export const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE,
   timeout: 90_000,
   headers: { 'Content-Type': 'application/json' },
 });

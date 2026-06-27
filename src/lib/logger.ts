@@ -10,7 +10,12 @@
 // client) so it bypasses retries/auth and survives page unload — and so a
 // logging failure can never recurse back into the logger.
 
-const ENDPOINT = '/api/v1/client-log';
+// Derived from the deploy subpath (BASE_URL = '/nexusai/') so it hits the
+// same-origin nginx proxy regardless of where the app is mounted.
+const ENDPOINT = `${import.meta.env.BASE_URL}api/v1/client-log`.replace(
+  /([^:])\/{2,}/g,
+  '$1/',
+);
 const DEDUPE_MS = 10_000;
 const MAX_KEYS = 80;
 

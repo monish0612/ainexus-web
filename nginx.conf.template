@@ -11,19 +11,15 @@ server {
     gzip_types text/plain text/css application/json application/javascript application/wasm image/svg+xml;
     gzip_min_length 1024;
 
-    # Hashed build assets — cache hard.
-    # NOTE: nginx drops INHERITED add_header directives the moment a location
-    # declares its own, so the security headers are repeated in each block that
-    # serves browser-facing responses (rather than relying on a server-level set).
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        add_header X-Content-Type-Options "nosniff" always;
-        try_files $uri =404;
-    }
+    # ── App is mounted under /nexusai/ ──────────────────────────────────────────
+    # The whole domain routes to this container; nginx owns all path logic, so
+    # behaviour is independent of any reverse-proxy path-stripping quirks.
 
-    # API reverse proxy — same-origin, no CORS. Streams up/down for big files.
-    location /api/ {
+    # API reverse proxy. The browser calls /nexusai/api/*; strip the /nexusai
+    # prefix so the backend still sees /api/*. Streams up/down for big files.
+    location /nexusai/api/ {
+        rewrite ^/nexusai/(api/.*)$ /$1 break;
+
         proxy_pass         ${API_UPSTREAM};
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
@@ -37,22 +33,34 @@ server {
         proxy_send_timeout      3600s;
     }
 
-    # SPA fallback — every other route serves index.html.
-    location / {
+    # Hashed build assets — cache hard. (Files live at /usr/share/nginx/html/nexusai/assets.)
+    location /nexusai/assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # The SPA itself.
+    location /nexusai/ {
         # ── Security headers (defense-in-depth) ──────────────────────────────
-        # Anti-clickjacking, MIME-sniffing, referrer & feature lockdown.
         add_header X-Frame-Options        "DENY"                              always;
         add_header X-Content-Type-Options "nosniff"                           always;
         add_header Referrer-Policy        "strict-origin-when-cross-origin"   always;
         add_header Permissions-Policy     "geolocation=(), microphone=(), camera=(), payment=(), usb=()" always;
-        # CSP: everything is same-origin (fonts are self-hosted via @fontsource,
-        # so no external font CDN is needed — this also keeps the UI intact on
-        # locked-down office networks). No inline/eval scripts in the build, so
-        # script-src stays 'self' (blocks injected JS). style 'unsafe-inline' is
-        # required by framer-motion / recharts inline styles; img https:/data:
-        # covers remote article images + canvas/base64.
+        # Everything is same-origin (fonts self-hosted via @fontsource).
+        # script-src 'self' blocks injected JS; style 'unsafe-inline' is needed
+        # by framer-motion / recharts; img https:/data: covers remote article
+        # images + canvas/base64; worker-src blob: covers the pdf.js worker.
         add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /nexusai/index.html;
     }
+
+    # Convenience redirects so bare paths land on the app.
+    location = /nexusai { return 302 /nexusai/; }
+    location = /        { return 302 /nexusai/; }
+
+    # Health probe for Coolify/uptime checks.
+    location = /healthz { return 200 "ok\n"; add_header Content-Type text/plain; }
 }

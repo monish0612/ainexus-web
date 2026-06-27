@@ -4,6 +4,13 @@ server {
     root         /usr/share/nginx/html;
     index        index.html;
 
+    # Emit RELATIVE Location headers on redirects. Behind Traefik (TLS at the
+    # edge, plain http to this container on :8080) an absolute redirect would
+    # leak the internal scheme+port (e.g. http://host:8080/nexusai/) and break
+    # the browser. Relative Location lets the browser keep https://<domain>.
+    absolute_redirect off;
+    port_in_redirect  off;
+
     # Large cloud uploads stream straight through to the backend.
     client_max_body_size 0;
 

@@ -1,0 +1,7 @@
+# Shell scripts MUST use LF — a CRLF shebang makes the kernel fail with
+# "no such file or directory" when the container runs the entrypoint.
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+
+# Normalize text to LF in the repo; let Git decide working-tree EOL otherwise.
+* text=auto eol=lf

@@ -3,10 +3,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-# --include=dev: the Vite/TS/Tailwind build needs devDependencies. Coolify may
-# inject NODE_ENV=production at build time, which would otherwise make npm ci
-# skip them and break `npm run build`.
-RUN npm ci --include=dev
+# `npm install` (not `npm ci`): the build image's npm (10.x on node:20-alpine)
+# differs from the npm that generated the lockfile (11.x), and npm ci is strict
+# about the cross-platform optional @esbuild/* entries — it would fail on that
+# drift. `npm install` resolves directly from package.json and is tolerant.
+# --include=dev forces devDependencies (Vite/TS/Tailwind) even if Coolify
+# injects NODE_ENV=production at build time.
+RUN npm install --include=dev --no-audit --no-fund
 
 COPY . .
 RUN npm run build

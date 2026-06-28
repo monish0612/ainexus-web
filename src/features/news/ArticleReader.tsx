@@ -14,7 +14,10 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { Markdown } from '@/components/ui/Markdown';
 import { Spinner } from '@/components/ui/primitives';
+import { ModelPicker } from '@/components/ui/ModelPicker';
 import { toast } from '@/components/ui/toast';
+import { useSettingsStore, Provider } from '@/store/settingsStore';
+import { ModelMode } from '@/lib/modelHints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { relativeTime } from '@/lib/format';
 import { NEWS_CAT_COLOR } from '@/lib/constants';
@@ -206,6 +209,9 @@ function FollowUpChat({ article }: { article: Article }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const defaultProvider = useSettingsStore((s) => s.defaultFollowUpProvider);
+  const [provider, setProvider] = useState<Provider>(defaultProvider);
+  const [mode, setMode] = useState<ModelMode>('lite');
   const bottomRef = useRef<HTMLDivElement>(null);
   // Only auto-scroll to the latest message once the user actually starts a
   // follow-up. Without this, opening an article (especially one with saved
@@ -242,7 +248,7 @@ function FollowUpChat({ article }: { article: Article }) {
 
     try {
       const history = messages.map((m) => ({ role: m.role, text: m.text }));
-      const res = await articleFollowUp({ article, question: q, history });
+      const res = await articleFollowUp({ article, question: q, history, provider, mode });
       const aiMsg: ChatMessage = {
         id: uuid(),
         article_id: article.id,
@@ -319,6 +325,14 @@ function FollowUpChat({ article }: { article: Article }) {
         )}
         <div ref={bottomRef} />
       </div>
+
+      <ModelPicker
+        className="mt-3 flex flex-col gap-2"
+        provider={provider}
+        mode={mode}
+        onProviderChange={setProvider}
+        onModeChange={setMode}
+      />
 
       <div className="mt-3 flex items-end gap-2">
         <textarea

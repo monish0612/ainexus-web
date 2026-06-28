@@ -11,9 +11,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Button, EmptyState, Segmented, Spinner } from '@/components/ui/primitives';
+import { Button, EmptyState, Spinner } from '@/components/ui/primitives';
+import { ModelPicker } from '@/components/ui/ModelPicker';
 import { Markdown } from '@/components/ui/Markdown';
 import { toast } from '@/components/ui/toast';
+import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { apiErrorMessage } from '@/lib/api/client';
 import { uuid } from '@/lib/format';
 import { imageFileToPayload } from '@/features/expense/receipt';
@@ -30,12 +32,6 @@ import {
   searchFollowUp,
 } from '@/lib/api/tutor';
 import { Source } from '@/lib/api/news';
-
-const MODE_OPTS: { value: SearchMode; label: string }[] = [
-  { value: 'lite', label: 'Quick' },
-  { value: 'deep', label: 'Deep' },
-  { value: 'thinking', label: 'Thinking' },
-];
 
 function Sources({ sources }: { sources: Source[] }) {
   if (!sources.length) return null;
@@ -64,6 +60,8 @@ export function InsightAITab() {
   const qc = useQueryClient();
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('lite');
+  const onlineSearchProvider = useSettingsStore((s) => s.onlineSearchProvider);
+  const [provider, setProvider] = useState<Provider>(onlineSearchProvider);
   const [image, setImage] = useState<{ base64: string; mediaType: string; preview: string } | null>(null);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [activeQuery, setActiveQuery] = useState('');
@@ -107,8 +105,8 @@ export function InsightAITab() {
     setActiveQuery(q);
     try {
       const res = image
-        ? await imageSearch(q, image.base64, image.mediaType, mode)
-        : await groundedSearch(q, mode);
+        ? await imageSearch(q, image.base64, image.mediaType, mode, provider)
+        : await groundedSearch(q, mode, provider);
       setResult(res);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Search failed'));
@@ -152,7 +150,7 @@ export function InsightAITab() {
         { role: 'assistant', text: result.answer },
         ...chat.map((m) => ({ role: m.role, text: m.text })),
       ];
-      const res = await searchFollowUp({ query: activeQuery, question: q, history, mode });
+      const res = await searchFollowUp({ query: activeQuery, question: q, history, mode, provider });
       const aiMsg: SearchChatMessage = {
         id: uuid(),
         role: 'assistant',
@@ -231,7 +229,13 @@ export function InsightAITab() {
             {loading ? <Spinner size={18} /> : <Search size={18} />}
           </button>
         </div>
-        <Segmented value={mode} onChange={setMode} options={MODE_OPTS} />
+        <ModelPicker
+          provider={provider}
+          mode={mode}
+          onProviderChange={setProvider}
+          onModeChange={setMode}
+          modes={['lite', 'deep', 'thinking']}
+        />
         <input
           ref={fileRef}
           type="file"

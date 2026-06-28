@@ -1,5 +1,6 @@
 import { api } from './client';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useSettingsStore, Provider } from '@/store/settingsStore';
+import { buildModelHints, ModelMode } from '@/lib/modelHints';
 
 export interface Article {
   id: string;
@@ -127,21 +128,25 @@ export async function articleFollowUp(params: {
   article: Article;
   question: string;
   history: { role: string; text: string }[];
+  provider?: Provider;
+  mode?: ModelMode;
 }): Promise<FollowUpResult> {
   const s = useSettingsStore.getState();
-  const provider = s.defaultFollowUpProvider;
-  const { data } = await api.post('/ai/article-followup', {
-    articleUrl: params.article.originalUrl,
-    articleTitle: params.article.title,
-    question: params.question,
-    history: params.history,
-    mode: 'deep',
-    provider,
+  const hints = buildModelHints({
+    provider: params.provider ?? s.defaultFollowUpProvider,
+    mode: params.mode ?? 'lite',
     deepModel: s.deepModel,
     liteModel: s.liteModel,
     xgrokLiteModel: s.xgrokLiteModel,
     xgrokDeepModel: s.xgrokDeepModel,
     xgrokThinkingModel: s.xgrokThinkingModel,
+  });
+  const { data } = await api.post('/ai/article-followup', {
+    articleUrl: params.article.originalUrl,
+    articleTitle: params.article.title,
+    question: params.question,
+    history: params.history,
+    ...hints,
   });
   return {
     answer: data.answer ?? '',

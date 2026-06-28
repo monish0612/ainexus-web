@@ -1,17 +1,23 @@
 import { api } from './client';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { Source } from './news';
 import { uuid } from '@/lib/format';
+import { buildModelHints, ModelMode } from '@/lib/modelHints';
 
-function modelArgs() {
+// Builds the { provider, mode, <one model id> } contract the backend resolver
+// expects — only the model field matching the active (provider, mode) pair is
+// sent so a "lite" call can never be silently upgraded to a deep model.
+function searchHints(mode: ModelMode, provider?: Provider) {
   const s = useSettingsStore.getState();
-  return {
+  return buildModelHints({
+    provider: provider ?? s.onlineSearchProvider,
+    mode,
     deepModel: s.deepModel,
     liteModel: s.liteModel,
     xgrokLiteModel: s.xgrokLiteModel,
     xgrokDeepModel: s.xgrokDeepModel,
     xgrokThinkingModel: s.xgrokThinkingModel,
-  };
+  });
 }
 
 // ── Rephrase ──────────────────────────────────────────────────────────────────
@@ -82,13 +88,11 @@ export interface SearchResult {
 export async function groundedSearch(
   query: string,
   mode: SearchMode,
+  provider?: Provider,
 ): Promise<SearchResult> {
-  const s = useSettingsStore.getState();
   const { data } = await api.post('/ai/grounded-search', {
     query,
-    mode,
-    provider: s.onlineSearchProvider,
-    ...modelArgs(),
+    ...searchHints(mode, provider),
   });
   return {
     answer: data.answer ?? '',
@@ -104,15 +108,13 @@ export async function imageSearch(
   image: string,
   imageMediaType: string,
   mode: SearchMode,
+  provider?: Provider,
 ): Promise<SearchResult> {
-  const s = useSettingsStore.getState();
   const { data } = await api.post('/ai/image-search', {
     query,
     image,
     imageMediaType,
-    mode,
-    provider: s.onlineSearchProvider,
-    ...modelArgs(),
+    ...searchHints(mode, provider),
   });
   return {
     answer: data.answer ?? '',
@@ -128,16 +130,14 @@ export async function searchFollowUp(params: {
   question: string;
   history: { role: string; text: string }[];
   mode: SearchMode;
+  provider?: Provider;
 }): Promise<SearchResult> {
-  const s = useSettingsStore.getState();
   const { data } = await api.post('/ai/article-followup', {
     articleTitle: params.query,
     articleUrl: '',
     question: params.question,
     history: params.history,
-    mode: params.mode,
-    provider: s.onlineSearchProvider,
-    ...modelArgs(),
+    ...searchHints(params.mode, params.provider),
   });
   return {
     answer: data.answer ?? '',

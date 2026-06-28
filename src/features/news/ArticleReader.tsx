@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Markdown } from '@/components/ui/Markdown';
 import { Spinner } from '@/components/ui/primitives';
 import { ModelPicker } from '@/components/ui/ModelPicker';
+import { ModelBadge } from '@/components/ui/ModelBadge';
 import { toast } from '@/components/ui/toast';
 import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { ModelMode } from '@/lib/modelHints';
@@ -36,6 +37,16 @@ import { useMarkRead, useToggleSave } from './hooks';
 interface Props {
   article: Article | null;
   onClose: () => void;
+}
+
+function countSources(sourcesJson?: string): number {
+  if (!sourcesJson) return 0;
+  try {
+    const parsed = JSON.parse(sourcesJson);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 export function ArticleReader({ article, onClose }: Props) {
@@ -299,7 +310,7 @@ function FollowUpChat({ article }: { article: Article }) {
         {messages.map((m) => (
           <div
             key={m.id}
-            className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
               className={`max-w-[88%] rounded-2xl px-4 py-2.5 ${
@@ -314,6 +325,9 @@ function FollowUpChat({ article }: { article: Article }) {
                 <Markdown className="text-sm">{m.text}</Markdown>
               )}
             </div>
+            {m.role === 'assistant' && (
+              <ModelBadge model={m.model} sources={countSources(m.sources_json)} />
+            )}
           </div>
         ))}
         {busy && (

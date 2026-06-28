@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button, EmptyState, Spinner } from '@/components/ui/primitives';
 import { ModelPicker } from '@/components/ui/ModelPicker';
+import { ModelBadge } from '@/components/ui/ModelBadge';
 import { Markdown } from '@/components/ui/Markdown';
 import { toast } from '@/components/ui/toast';
 import { useSettingsStore, Provider } from '@/store/settingsStore';
@@ -32,6 +33,16 @@ import {
   searchFollowUp,
 } from '@/lib/api/tutor';
 import { Source } from '@/lib/api/news';
+
+function countSources(sourcesJson?: string): number {
+  if (!sourcesJson) return 0;
+  try {
+    const parsed = JSON.parse(sourcesJson);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}
 
 function Sources({ sources }: { sources: Source[] }) {
   if (!sources.length) return null;
@@ -271,6 +282,7 @@ export function InsightAITab() {
             </Button>
           </div>
           <Markdown>{result.answer}</Markdown>
+          <ModelBadge model={result.model} sources={result.sources.length} />
           <Sources sources={result.sources} />
 
           {/* Follow-up */}
@@ -278,7 +290,7 @@ export function InsightAITab() {
             {chat.map((m) => (
               <div
                 key={m.id}
-                className={`mb-3 flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`mb-3 flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
               >
                 <div
                   className={`max-w-[88%] rounded-2xl px-4 py-2.5 ${
@@ -293,6 +305,9 @@ export function InsightAITab() {
                     <Markdown className="text-sm">{m.text}</Markdown>
                   )}
                 </div>
+                {m.role === 'assistant' && (
+                  <ModelBadge model={m.model} sources={countSources(m.sources_json)} />
+                )}
               </div>
             ))}
             {followBusy && (
@@ -300,6 +315,13 @@ export function InsightAITab() {
                 <Spinner size={15} /> Thinking…
               </div>
             )}
+            <ModelPicker
+              className="mb-2 flex flex-col gap-2"
+              provider={provider}
+              mode={mode}
+              onProviderChange={setProvider}
+              onModeChange={setMode}
+            />
             <div className="flex items-end gap-2">
               <textarea
                 className="input max-h-28 min-h-[44px] flex-1 resize-none py-2.5"

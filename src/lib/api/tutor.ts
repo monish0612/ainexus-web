@@ -188,7 +188,10 @@ export interface SavedSearch {
   query: string;
   title: string;
   responseType: string;
-  responseJson: string;
+  // The backend returns `responseJson` as a PARSED object (it JSON.parses the
+  // stored column before sending), but older/local rows may still be a raw
+  // string — callers must tolerate both. See `parseSavedResult`.
+  responseJson: unknown;
   model: string;
   provider: string;
   mode: string;
@@ -202,21 +205,66 @@ export async function fetchSavedSearches(): Promise<SavedSearch[]> {
   return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Decode a saved-search `responseJson` (object OR string) into a
+ * `SearchResult`, tolerating every shape the platforms persist:
+ *   • Web grounded:  { answer, model, sources, searchQueries }
+ *   • Android grounded/tavily: same keys (+ query, citations)
+ *   • Android summarizer: { summary, model, ... } — `summary` → answer
+ * Returns null only when the payload is unusable.
+ */
+export function parseSavedResult(raw: unknown): SearchResult | null {
+  let obj: Record<string, unknown> | null = null;
+  if (raw && typeof raw === 'object') {
+    obj = raw as Record<string, unknown>;
+  } else if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') obj = parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (!obj) return null;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const answer = str(obj.answer) || str(obj.text) || str(obj.summary) || str(obj.content);
+  return {
+    answer,
+    model: str(obj.model),
+    sources: Array.isArray(obj.sources) ? (obj.sources as Source[]) : [],
+    searchQueries: Array.isArray(obj.searchQueries) ? (obj.searchQueries as string[]) : [],
+    mode: str(obj.mode) || undefined,
+  };
+}
+
 export async function saveSearch(s: {
+  id?: string;
   query: string;
   title: string;
   result: SearchResult;
   mode: string;
+  provider?: string;
 }): Promise<string> {
-  const id = uuid();
+  const id = s.id ?? uuid();
   await api.post('/saved-searches', {
     id,
     kind: 'query',
     query: s.query,
     title: s.title,
-    responseType: 'search',
-    responseJson: JSON.stringify(s.result),
+    // Use the SAME response type + JSON shape the Android app persists
+    // (`SavedSearchResponseType.grounded`) so a web-saved search renders its
+    // ANSWER (not just the query) when opened on the phone, and vice-versa.
+    responseType: 'grounded',
+    responseJson: JSON.stringify({
+      answer: s.result.answer,
+      query: s.query,
+      model: s.result.model,
+      searchQueries: s.result.searchQueries ?? [],
+      sources: s.result.sources ?? [],
+      citations: [],
+    }),
     model: s.result.model,
+    provider: s.provider ?? '',
     mode: s.mode,
     pinned: true,
     savedAt: new Date().toISOString(),
@@ -238,8 +286,18 @@ export interface SearchChatMessage {
 }
 
 export async function fetchSearchChat(id: string): Promise<SearchChatMessage[]> {
-  const { data } = await api.get<SearchChatMessage[]>(`/saved-searches/${id}/chat`);
-  return Array.isArray(data) ? data : [];
+  const { data } = await api.get<Record<string, unknown>[]>(`/saved-searches/${id}/chat`);
+  if (!Array.isArray(data)) return [];
+  // The backend emits camelCase (`sourcesJson`/`createdAt`); normalize to the
+  // snake_case shape the UI uses so reopened messages keep their source counts.
+  return data.map((m) => ({
+    id: String(m.id ?? ''),
+    role: String(m.role ?? 'assistant'),
+    text: String(m.text ?? ''),
+    model: m.model != null ? String(m.model) : '',
+    sources_json: String(m.sources_json ?? m.sourcesJson ?? '[]'),
+    created_at: String(m.created_at ?? m.createdAt ?? ''),
+  }));
 }
 
 export async function saveSearchChat(searchId: string, msg: SearchChatMessage): Promise<void> {

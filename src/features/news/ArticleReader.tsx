@@ -32,6 +32,7 @@ import {
   summarizeArticle,
 } from '@/lib/api/news';
 import { uuid } from '@/lib/format';
+import { persist } from '@/lib/api/persistQueue';
 import { useMarkRead, useToggleSave } from './hooks';
 
 interface Props {
@@ -255,7 +256,7 @@ function FollowUpChat({ article }: { article: Article }) {
     };
     setMessages((m) => [...m, userMsg]);
     setBusy(true);
-    saveArticleChat({ ...userMsg, articleId: article.id }).catch(() => {});
+    persist('article-chat', () => saveArticleChat({ ...userMsg, articleId: article.id }));
 
     try {
       const history = messages.map((m) => ({ role: m.role, text: m.text }));
@@ -270,11 +271,13 @@ function FollowUpChat({ article }: { article: Article }) {
         created_at: new Date().toISOString(),
       };
       setMessages((m) => [...m, aiMsg]);
-      saveArticleChat({
-        ...aiMsg,
-        articleId: article.id,
-        sourcesJson: aiMsg.sources_json,
-      }).catch(() => {});
+      persist('article-chat', () =>
+        saveArticleChat({
+          ...aiMsg,
+          articleId: article.id,
+          sourcesJson: aiMsg.sources_json,
+        }),
+      );
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Follow-up failed'));
       setMessages((m) => m.filter((x) => x.id !== userMsg.id));

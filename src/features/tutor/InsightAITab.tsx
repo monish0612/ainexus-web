@@ -26,13 +26,16 @@ import {
   SearchResult,
   deleteSavedSearch,
   fetchSavedSearches,
+  fetchSearchChat,
   groundedSearch,
   imageSearch,
+  parseSavedResult,
   saveSearch,
   saveSearchChat,
   searchFollowUp,
 } from '@/lib/api/tutor';
 import { Source } from '@/lib/api/news';
+import { persist } from '@/lib/api/persistQueue';
 
 function countSources(sourcesJson?: string): number {
   if (!sourcesJson) return 0;
@@ -77,6 +80,13 @@ export function InsightAITab() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [activeQuery, setActiveQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  // `sessionId` is the STABLE id for the current result session. It's chosen
+  // up-front (on search / on reopen) so that when the user finally taps Save
+  // the parent row and every follow-up message share one id — and the id used
+  // here is exactly the one persisted, so reopening (here or on the phone)
+  // re-attaches the same chat. `savedId` is non-null only once the row is
+  // actually persisted (pinned) on the server.
+  const [sessionId, setSessionId] = useState<string>(() => uuid());
   const [savedId, setSavedId] = useState<string | null>(null);
   const [chat, setChat] = useState<SearchChatMessage[]>([]);
   const [followInput, setFollowInput] = useState('');
@@ -112,6 +122,7 @@ export function InsightAITab() {
     setLoading(true);
     setResult(null);
     setSavedId(null);
+    setSessionId(uuid());
     setChat([]);
     setActiveQuery(q);
     try {
@@ -130,12 +141,19 @@ export function InsightAITab() {
     if (!result || savedId) return;
     try {
       const id = await saveSearch({
+        id: sessionId,
         query: activeQuery,
         title: activeQuery.slice(0, 80),
         result,
         mode,
+        provider,
       });
       setSavedId(id);
+      // Flush any follow-ups asked BEFORE saving so they persist on the
+      // server and sync to the phone. Robust retry + Telegram on failure.
+      for (const m of chat) {
+        persist('saved-search-chat', () => saveSearchChat(id, m));
+      }
       qc.invalidateQueries({ queryKey: ['saved-searches'] });
       toast.success('Saved');
     } catch (err) {
@@ -155,7 +173,7 @@ export function InsightAITab() {
     };
     setChat((c) => [...c, userMsg]);
     setFollowBusy(true);
-    if (savedId) saveSearchChat(savedId, userMsg).catch(() => {});
+    if (savedId) persist('saved-search-chat', () => saveSearchChat(savedId, userMsg));
     try {
       const history = [
         { role: 'assistant', text: result.answer },
@@ -171,7 +189,7 @@ export function InsightAITab() {
         created_at: new Date().toISOString(),
       };
       setChat((c) => [...c, aiMsg]);
-      if (savedId) saveSearchChat(savedId, aiMsg).catch(() => {});
+      if (savedId) persist('saved-search-chat', () => saveSearchChat(savedId, aiMsg));
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Follow-up failed'));
       setChat((c) => c.filter((m) => m.id !== userMsg.id));
@@ -181,17 +199,30 @@ export function InsightAITab() {
     }
   }
 
-  function openSaved(s: (typeof savedSearches)[number]) {
-    try {
-      const parsed: SearchResult = JSON.parse(s.responseJson);
-      setResult(parsed);
-      setActiveQuery(s.query);
-      setSavedId(s.id);
-      setChat([]);
-      setMode((s.mode as SearchMode) || 'lite');
-      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch {
+  async function openSaved(s: (typeof savedSearches)[number]) {
+    // `responseJson` arrives as a parsed object from the server (or a raw
+    // string for legacy/local rows). `parseSavedResult` tolerates both and
+    // every cross-platform shape (web grounded, Android grounded/summarizer).
+    const parsed = parseSavedResult(s.responseJson);
+    if (!parsed) {
       toast.error('Could not open saved search');
+      return;
+    }
+    setResult(parsed);
+    setActiveQuery(s.query);
+    setSessionId(s.id);
+    setSavedId(s.id);
+    setChat([]);
+    setMode((s.mode as SearchMode) || 'lite');
+    if (s.provider) setProvider(s.provider as Provider);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Load the persisted follow-up chat (may have been created here earlier
+    // or on the phone). Best-effort — a fetch failure just leaves it empty.
+    try {
+      const msgs = await fetchSearchChat(s.id);
+      setChat(msgs);
+    } catch {
+      /* keep chat empty on failure */
     }
   }
 

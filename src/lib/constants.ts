@@ -1,3 +1,5 @@
+import type { Bank } from '@/store/settingsStore';
+
 // ── Expense domain (mirrors lib/domain/entities/expense_entities.dart) ─────────
 
 export const EXPENSE_BANKS = ['HDFC', 'ICICI', 'AXIS', 'SCAPIA', 'CASH'] as const;
@@ -94,12 +96,21 @@ export const DEFAULT_MODELS = {
   xgrokThinkingModel: 'grok-4-1-fast-reasoning',
 };
 
-export const DEFAULT_BANKS = [
-  { id: 'b1', name: 'HDFC Bank', color: '#0D59F2' },
-  { id: 'b2', name: 'SBI', color: '#059669' },
-  { id: 'b3', name: 'ICICI Bank', color: '#DC2626' },
-  { id: 'b4', name: 'Axis Bank', color: '#7C3AED' },
-  { id: 'b5', name: 'Kotak Mahindra', color: '#D97706' },
+// Card types a configured bank entry can represent (mirrors CARD_TYPES).
+export const BANK_CARD_TYPES = ['DB', 'CC', 'Cash'] as const;
+
+// Seeded to mirror the real payment instruments used in expense entry. Each
+// entry is a (bank, cardType) card; CC cards carry their billing cycle
+// (statementDay = day the statement closes, dueDay = day the bill is due in the
+// following month). Mirror of `_defaultBanks` in settings_controller.dart.
+export const DEFAULT_BANKS: Bank[] = [
+  { id: 'hdfc_db', name: 'HDFC', color: '#004C8F', cardType: 'DB' },
+  { id: 'hdfc_cc', name: 'HDFC', color: '#004C8F', cardType: 'CC', statementDay: 18, dueDay: 9 },
+  { id: 'icici_db', name: 'ICICI', color: '#B02A2A', cardType: 'DB' },
+  { id: 'axis_db', name: 'AXIS', color: '#97144D', cardType: 'DB' },
+  { id: 'axis_cc', name: 'AXIS', color: '#97144D', cardType: 'CC', statementDay: 24, dueDay: 13 },
+  { id: 'scapia_cc', name: 'SCAPIA', color: '#6D28D9', cardType: 'CC', statementDay: 26, dueDay: 15 },
+  { id: 'cash', name: 'CASH', color: '#868E96', cardType: 'Cash' },
 ];
 
 export const BANK_PALETTE = [

@@ -15,6 +15,7 @@ import { categoryColor } from '@/lib/constants';
 import { EmptyState, SkeletonCard } from '@/components/ui/primitives';
 import { SubTabs } from '@/components/layout/PageHeader';
 import { useExpenses } from './hooks';
+import { CreditCardForecastCard } from './CreditCardForecastCard';
 import {
   PERIOD_LABELS,
   Period,
@@ -212,6 +213,9 @@ export function InsightsTab() {
               })}
             </div>
           </div>
+
+          {/* Credit-card billing forecast (uses ALL expenses, not period-scoped) */}
+          <CreditCardForecastCard expenses={expenses} />
         </>
       )}
     </div>

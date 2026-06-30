@@ -6,6 +6,7 @@ import { Segmented, Spinner } from '@/components/ui/primitives';
 import { Provider, useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 import { fetchModels } from '@/lib/api/settings';
+import { BanksSection } from './BanksSection';
 
 interface Props {
   open: boolean;
@@ -253,6 +254,8 @@ export function SettingsDrawer({ open, onClose }: Props) {
                   </div>
                 )}
               </Section>
+
+              <BanksSection />
 
               <button
                 onClick={() => {

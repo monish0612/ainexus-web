@@ -5,6 +5,25 @@ function liteModel(): string {
   return useSettingsStore.getState().liteModel;
 }
 
+/**
+ * The user's configured bank names (distinct, trimmed) so the backend
+ * smart-parse prompt can recognise cards added in Settings after release.
+ */
+function configuredBanks(): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const b of useSettingsStore.getState().banks) {
+    const name = (b?.name ?? '').trim();
+    if (!name) continue;
+    const key = name.toUpperCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+}
+
 export interface SmartParseResult {
   amount: number;
   description: string;
@@ -14,7 +33,11 @@ export interface SmartParseResult {
 }
 
 export async function smartParseText(text: string): Promise<SmartParseResult> {
-  const { data } = await api.post('/ai/smart-parse', { text, liteModel: liteModel() });
+  const { data } = await api.post('/ai/smart-parse', {
+    text,
+    liteModel: liteModel(),
+    banks: configuredBanks(),
+  });
   return data;
 }
 
@@ -27,6 +50,7 @@ export async function smartParseImage(
     image,
     imageMediaType,
     liteModel: liteModel(),
+    banks: configuredBanks(),
   });
   return data;
 }

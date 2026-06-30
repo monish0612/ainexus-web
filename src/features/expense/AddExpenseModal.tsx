@@ -12,10 +12,13 @@ import {
   categoryColor,
   categoryIcon,
 } from '@/lib/constants';
-import { toNaiveLocalIso, uuid } from '@/lib/format';
+import { toNaiveLocalIso, uuid, safeParseDate } from '@/lib/format';
 import { apiErrorMessage } from '@/lib/api/client';
 import { categorize, smartParseImage } from '@/lib/api/ai';
 import { Expense } from '@/lib/api/expense';
+import { useSettingsStore, type Bank } from '@/store/settingsStore';
+import { cardBillTimingFor } from '@/lib/creditCardForecast';
+import { CalendarClock } from 'lucide-react';
 import { categorizeLocal } from './categorize';
 import { fileToReceiptPayload } from './receipt';
 import { useUpsertExpense } from './hooks';
@@ -37,6 +40,37 @@ function todayLocalDate(): string {
 
 export function AddExpenseModal({ open, onClose, editing }: Props) {
   const upsert = useUpsertExpense();
+  const banks = useSettingsStore((s) => s.banks);
+  const bankNames = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const b of banks) {
+      if (!seen.has(b.name)) {
+        seen.add(b.name);
+        out.push(b.name);
+      }
+    }
+    return out.length ? out : [...EXPENSE_BANKS];
+  }, [banks]);
+
+  // Card types configured for a given bank name (falls back to the legacy rule
+  // when the bank has no config: CASH ⇒ Cash only, otherwise DB/CC).
+  const allowedCardTypes = useMemo(
+    () =>
+      (bankName: string): string[] => {
+        const configs = banks.filter(
+          (b) => b.name.toLowerCase() === bankName.toLowerCase(),
+        );
+        if (configs.length) {
+          const set = new Set(configs.map((b) => b.cardType ?? 'DB'));
+          return CARD_TYPES.filter((t) => set.has(t));
+        }
+        if (bankName.toUpperCase() === 'CASH') return ['Cash'];
+        return ['DB', 'CC'];
+      },
+    [banks],
+  );
+
   const [mode, setMode] = useState<Mode>('manual');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -78,12 +112,17 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
     }
   }, [open, editing]);
 
-  // CASH bank forces Cash card type.
+  // Keep the selected payment type valid for the chosen bank: auto-select when
+  // the bank exposes exactly one type, else fall back to a configured one.
   useEffect(() => {
-    if (bank === 'CASH') setCardType('Cash');
-    else if (cardType === 'Cash') setCardType('DB');
+    const allowed = allowedCardTypes(bank);
+    if (allowed.length === 1) {
+      if (cardType !== allowed[0]) setCardType(allowed[0]);
+    } else if (!allowed.includes(cardType)) {
+      setCardType(allowed.includes('DB') ? 'DB' : allowed[0]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bank]);
+  }, [bank, banks]);
 
   // Live categorize (local first, debounced AI fallback) while typing.
   useEffect(() => {
@@ -275,7 +314,7 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
                   Bank / Source
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {EXPENSE_BANKS.map((b) => (
+                  {bankNames.map((b) => (
                     <button
                       key={b}
                       onClick={() => setBank(b)}
@@ -297,13 +336,15 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
                 <Segmented
                   value={cardType}
                   onChange={setCardType}
-                  options={CARD_TYPES.map((t) => ({
+                  options={allowedCardTypes(bank).map((t) => ({
                     value: t,
                     label: CARD_TYPE_LABELS[t],
                   }))}
                 />
               </div>
             </div>
+
+            <CcRepaymentHint bank={bank} cardType={cardType} date={date} banks={banks} />
 
             {/* Date + comments */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -348,6 +389,45 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
         )}
       </div>
     </Modal>
+  );
+}
+
+/** At log time, tells the user which salary repays a credit-card charge. */
+function CcRepaymentHint({
+  bank,
+  cardType,
+  date,
+  banks,
+}: {
+  bank: string;
+  cardType: string;
+  date: string;
+  banks: Bank[];
+}) {
+  if (cardType !== 'CC') return null;
+  const cfg = banks.find(
+    (b) =>
+      b.name.toLowerCase() === bank.toLowerCase() &&
+      b.cardType === 'CC' &&
+      b.statementDay != null &&
+      b.dueDay != null,
+  );
+  if (!cfg) return null;
+  const parsed = safeParseDate(`${date}T00:00:00`) ?? new Date();
+  const timing = cardBillTimingFor(parsed, cfg.statementDay as number, cfg.dueDay as number);
+  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-violet-400/30 bg-violet-400/10 px-3.5 py-3">
+      <CalendarClock size={18} className="mt-0.5 shrink-0 text-violet-400" />
+      <div>
+        <p className="text-sm font-bold text-violet-400">
+          Repaid from your {timing.salaryMonthLabel} salary
+        </p>
+        <p className="text-xs text-fg3">
+          {bank} statement closes {fmt(timing.statementClose)}, bill due {fmt(timing.dueDate)}.
+        </p>
+      </div>
+    </div>
   );
 }
 

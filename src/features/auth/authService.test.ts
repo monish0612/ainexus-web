@@ -22,14 +22,14 @@ describe('authService HTTP (insecure-context) fallback', () => {
 
   it('logs in with correct credentials when crypto.subtle is unavailable', async () => {
     forceInsecureContext();
-    await expect(authenticate('monish', 'Chennaisuper.23')).resolves.toBe(true);
+    await expect(authenticate('monish', 'Tundra-Lantern-Zephyr-20')).resolves.toBe(true);
     // Session must be persisted so a refresh stays logged in.
     expect(readSession().authenticated).toBe(true);
   });
 
   it('is tolerant of username case + surrounding whitespace', async () => {
     forceInsecureContext();
-    await expect(authenticate('  MONISH  ', 'Chennaisuper.23')).resolves.toBe(
+    await expect(authenticate('  MONISH  ', 'Tundra-Lantern-Zephyr-20')).resolves.toBe(
       true,
     );
   });
@@ -42,7 +42,7 @@ describe('authService HTTP (insecure-context) fallback', () => {
 
   it('rejects an unknown username', async () => {
     forceInsecureContext();
-    await expect(authenticate('attacker', 'Chennaisuper.23')).resolves.toBe(
+    await expect(authenticate('attacker', 'Tundra-Lantern-Zephyr-20')).resolves.toBe(
       false,
     );
   });
@@ -54,7 +54,7 @@ describe('authService secure-context (HTTPS) path', () => {
       // Environment without WebCrypto subtle — fallback path already covered.
       return;
     }
-    await expect(authenticate('monish', 'Chennaisuper.23')).resolves.toBe(true);
+    await expect(authenticate('monish', 'Tundra-Lantern-Zephyr-20')).resolves.toBe(true);
   });
 });
 

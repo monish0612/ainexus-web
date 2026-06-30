@@ -12,7 +12,7 @@ const MAX_SESSION_DAYS = 45;
 
 // Credential fragments — base64-encoded, split for obfuscation (as in the app).
 const UF = ['bW9u', 'aXNo'];
-const PF = ['Q2hlbm5h', 'aXN1cGVyLjIz'];
+const PF = ['VHVuZHJhLUxhbnRl', 'cm4tWmVwaHlyLTIw'];
 
 import { sha256 } from 'js-sha256';
 

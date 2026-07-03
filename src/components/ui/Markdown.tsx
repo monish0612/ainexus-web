@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { Lightbox } from './Lightbox';
 
 interface MarkdownProps {
   children: string;
@@ -26,6 +27,10 @@ const sanitizeSchema = {
 };
 
 export const Markdown = memo(function Markdown({ children, className }: MarkdownProps) {
+  // Inline article images are often screenshots of dense text — clicking one
+  // opens the shared zoomable lightbox so it's actually readable.
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
+
   return (
     <div className={`prose-nexus ${className ?? ''}`}>
       <ReactMarkdown
@@ -37,12 +42,27 @@ export const Markdown = memo(function Markdown({ children, className }: Markdown
           ),
           img: ({ node, ...props }) => (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <img loading="lazy" {...props} />
+            <img
+              loading="lazy"
+              {...props}
+              role="button"
+              tabIndex={0}
+              title="Click to zoom"
+              className="nexus-zoomable-img"
+              onClick={() => props.src && setZoomSrc(String(props.src))}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && props.src) {
+                  e.preventDefault();
+                  setZoomSrc(String(props.src));
+                }
+              }}
+            />
           ),
         }}
       >
         {children}
       </ReactMarkdown>
+      <Lightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
     </div>
   );
 });

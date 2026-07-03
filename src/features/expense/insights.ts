@@ -12,25 +12,39 @@ export const PERIOD_LABELS: Record<Period, string> = {
   all: 'All',
 };
 
-function periodStart(period: Period): Date | null {
-  const now = new Date();
-  const d = new Date(now);
+/**
+ * Inclusive date bounds `[start, end]` for a period. Rolling periods
+ * (today/7d/1m/6m) get an upper bound of *end of today* so a future-dated
+ * entry — e.g. a next-month credit-card bill logged in advance — never leaks
+ * into the current windows (it stays visible in the full tracker list and
+ * under "All", where it belongs). `all` has no bounds and includes everything.
+ *
+ * `now` is injectable purely so the date→period contract can be unit-tested
+ * deterministically.
+ */
+export function periodBounds(
+  period: Period,
+  now: Date = new Date(),
+): { start: Date | null; end: Date | null } {
+  if (period === 'all') return { start: null, end: null };
+  const start = new Date(now);
   switch (period) {
     case 'today':
-      d.setHours(0, 0, 0, 0);
-      return d;
+      start.setHours(0, 0, 0, 0);
+      break;
     case '7d':
-      d.setDate(d.getDate() - 7);
-      return d;
+      start.setDate(start.getDate() - 7);
+      break;
     case '1m':
-      d.setMonth(d.getMonth() - 1);
-      return d;
+      start.setMonth(start.getMonth() - 1);
+      break;
     case '6m':
-      d.setMonth(d.getMonth() - 6);
-      return d;
-    case 'all':
-      return null;
+      start.setMonth(start.getMonth() - 6);
+      break;
   }
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
 }
 
 /** Consumption only (drops Investment). */
@@ -38,12 +52,19 @@ export function spendOnly(expenses: Expense[]): Expense[] {
   return expenses.filter((e) => !isInvestmentCategory(e.category));
 }
 
-export function inPeriod(expenses: Expense[], period: Period): Expense[] {
-  const start = periodStart(period);
-  if (!start) return expenses;
+export function inPeriod(
+  expenses: Expense[],
+  period: Period,
+  now: Date = new Date(),
+): Expense[] {
+  const { start, end } = periodBounds(period, now);
+  if (!start && !end) return expenses;
   return expenses.filter((e) => {
     const d = safeParseDate(e.date);
-    return d != null && d >= start;
+    if (d == null) return false;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
   });
 }
 

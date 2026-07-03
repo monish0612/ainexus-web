@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Markdown } from '@/components/ui/Markdown';
+import { Lightbox } from '@/components/ui/Lightbox';
 import { Spinner } from '@/components/ui/primitives';
 import { ModelPicker } from '@/components/ui/ModelPicker';
 import { ModelBadge } from '@/components/ui/ModelBadge';
@@ -65,6 +66,7 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+  const [heroZoom, setHeroZoom] = useState(false);
   // Read state is driven by an explicit "Mark read" action (like the Android
   // app) — NOT by simply opening the article. Saving never marks it read.
   const [read, setRead] = useState(article.isRead);
@@ -102,16 +104,25 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
     <div>
       {/* Hero */}
       {article.imageUrl && (
-        <div className="relative h-44 w-full overflow-hidden sm:h-60">
+        <button
+          type="button"
+          onClick={() => setHeroZoom(true)}
+          className="group relative block h-44 w-full cursor-zoom-in overflow-hidden sm:h-60"
+          aria-label="Zoom image"
+        >
           <img
             src={article.imageUrl}
             alt=""
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
             onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-bg1 via-bg1/20 to-transparent" />
-        </div>
+        </button>
       )}
+      <Lightbox
+        src={heroZoom ? article.imageUrl : null}
+        onClose={() => setHeroZoom(false)}
+      />
 
       <div className="mx-auto max-w-2xl px-5 py-6 sm:px-6">
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">

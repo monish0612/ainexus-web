@@ -133,6 +133,13 @@ body {
   border: 1px solid var(--border);
   display: block;
 }
+.prose-nexus img.nexus-zoomable-img {
+  cursor: zoom-in;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.prose-nexus img.nexus-zoomable-img:hover {
+  filter: brightness(1.06);
+}
 .prose-nexus pre {
   background: var(--bg3);
   border: 1px solid var(--border);

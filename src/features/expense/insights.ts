@@ -1,5 +1,5 @@
 import { Expense } from '@/lib/api/expense';
-import { isInvestmentCategory } from '@/lib/constants';
+import { isInvestmentCategory, isLoanCategory, isNonSpendCategory } from '@/lib/constants';
 import { safeParseDate } from '@/lib/format';
 
 export type Period = 'today' | '7d' | '1m' | '6m' | 'all';
@@ -47,9 +47,9 @@ export function periodBounds(
   return { start, end };
 }
 
-/** Consumption only (drops Investment). */
+/** Consumption only (drops Investment and Loan repayments). */
 export function spendOnly(expenses: Expense[]): Expense[] {
-  return expenses.filter((e) => !isInvestmentCategory(e.category));
+  return expenses.filter((e) => !isNonSpendCategory(e.category));
 }
 
 export function inPeriod(
@@ -170,5 +170,11 @@ export function dayOfWeekSeries(expenses: Expense[]): TrendPoint[] {
 export function totalInvestments(expenses: Expense[]): number {
   return expenses
     .filter((e) => isInvestmentCategory(e.category))
+    .reduce((s, e) => s + e.amount, 0);
+}
+
+export function totalLoans(expenses: Expense[]): number {
+  return expenses
+    .filter((e) => isLoanCategory(e.category))
     .reduce((s, e) => s + e.amount, 0);
 }

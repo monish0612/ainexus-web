@@ -12,7 +12,7 @@ import {
   useExpenses,
   useSetBudget,
 } from './hooks';
-import { inPeriod, spendOnly, totalInvestments } from './insights';
+import { inPeriod, spendOnly, totalInvestments, totalLoans } from './insights';
 
 function Ring({ fraction, color }: { fraction: number; color: string }) {
   const r = 52;
@@ -48,6 +48,7 @@ export function TrackerTab({ onEdit }: { onEdit: (e: Expense) => void }) {
   const thisMonth = useMemo(() => spendOnly(inPeriod(expenses, '1m')), [expenses]);
   const spent = thisMonth.reduce((s, e) => s + e.amount, 0);
   const investments = useMemo(() => totalInvestments(expenses), [expenses]);
+  const loans = useMemo(() => totalLoans(expenses), [expenses]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -102,6 +103,11 @@ export function TrackerTab({ onEdit }: { onEdit: (e: Expense) => void }) {
             {investments > 0 && (
               <span className="pill border border-line bg-bg2 text-fg2">
                 📈 Invested {formatCurrency(investments)}
+              </span>
+            )}
+            {loans > 0 && (
+              <span className="pill border border-line bg-bg2 text-fg2">
+                🏦 Repaid {formatCurrency(loans)}
               </span>
             )}
           </div>

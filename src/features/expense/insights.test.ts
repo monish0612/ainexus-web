@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Expense } from '@/lib/api/expense';
-import { inPeriod, spendOnly, type Period } from './insights';
+import { inPeriod, spendOnly, totalLoans, totalInvestments, type Period } from './insights';
 
 // Fixed "now" away from month edges so the day math is unambiguous.
 const NOW = new Date('2026-07-15T10:30:00');
@@ -78,14 +78,39 @@ describe('inPeriod — date → period bucketing', () => {
   });
 });
 
-describe('spendOnly — investments excluded', () => {
-  it('drops Investment-category rows from spend', () => {
+describe('spendOnly — investments & loans excluded', () => {
+  it('drops Investment- and Loan-category rows from spend', () => {
     const all = [
       exp('spend', '2026-07-15T09:00:00'),
       exp('inv', '2026-07-15T09:00:00', 'Investment'),
+      exp('loan', '2026-07-15T09:00:00', 'Loan'),
     ];
     const out = spendOnly(all);
     expect(has(out, 'spend')).toBe(true);
     expect(has(out, 'inv')).toBe(false);
+    expect(has(out, 'loan')).toBe(false);
+  });
+});
+
+describe('totalLoans / totalInvestments — separated buckets', () => {
+  it('sums only the matching non-spend category', () => {
+    const all = [
+      exp('spend', '2026-07-15T09:00:00'),
+      exp('inv', '2026-07-15T09:00:00', 'Investment'),
+      exp('loan', '2026-07-15T09:00:00', 'Loan'),
+    ];
+    // each row is amount 100
+    expect(totalLoans(all)).toBe(100);
+    expect(totalInvestments(all)).toBe(100);
+  });
+
+  it('a large loan does not leak into the budget spend total', () => {
+    const all = [
+      { ...exp('food', '2026-07-15T09:00:00'), amount: 10000 },
+      { ...exp('homeloan', '2026-07-15T09:00:00', 'Loan'), amount: 50000 },
+    ];
+    const spent = spendOnly(inPeriod(all, '1m', NOW)).reduce((s, e) => s + e.amount, 0);
+    expect(spent).toBe(10000);
+    expect(totalLoans(all)).toBe(50000);
   });
 });

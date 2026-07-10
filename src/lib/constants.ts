@@ -22,6 +22,16 @@ export function isInvestmentCategory(c?: string | null): boolean {
   return (c ?? '').trim().toLowerCase() === INVESTMENT_CATEGORY.toLowerCase();
 }
 
+export const LOAN_CATEGORY = 'Loan';
+export function isLoanCategory(c?: string | null): boolean {
+  return (c ?? '').trim().toLowerCase() === LOAN_CATEGORY.toLowerCase();
+}
+
+/** Categories that are NOT consumption and must never touch the budget/spend. */
+export function isNonSpendCategory(c?: string | null): boolean {
+  return isInvestmentCategory(c) || isLoanCategory(c);
+}
+
 export const CATEGORY_COLORS: Record<string, string> = {
   Food: '#FF6B6B', Grocery: '#51CF66', Transport: '#339AF0', Entertainment: '#CC5DE8',
   Shopping: '#FF922B', Bills: '#FCC419', Health: '#F06595', Fuel: '#F76707',

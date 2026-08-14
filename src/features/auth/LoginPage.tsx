@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/primitives';
 
 export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
+  const sessionExpired = useAuthStore((s) => s.sessionExpired);
+  const storedUsername = useAuthStore((s) => s.username);
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(sessionExpired ? storedUsername : '');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
@@ -46,9 +48,13 @@ export default function LoginPage() {
             N
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-fg">
-            Welcome back
+            {sessionExpired ? 'Session expired' : 'Welcome back'}
           </h1>
-          <p className="mt-1 text-sm text-fg3">Sign in to your Nexus AI workspace</p>
+          <p className="mt-1 text-sm text-fg3">
+            {sessionExpired
+              ? 'Your 45-day session expired. Re-enter the same password to continue.'
+              : 'Sign in to your Nexus AI workspace'}
+          </p>
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -63,7 +69,7 @@ export default function LoginPage() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              autoFocus
+              autoFocus={!sessionExpired}
             />
           </div>
 
@@ -79,6 +85,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoFocus={sessionExpired}
             />
             <button
               type="button"
@@ -102,7 +109,7 @@ export default function LoginPage() {
 
           <Button type="submit" loading={loading} className="mt-2 w-full">
             {!loading && <LogIn size={18} />}
-            Sign in
+            {sessionExpired ? 'Continue' : 'Sign in'}
           </Button>
         </form>
       </motion.div>

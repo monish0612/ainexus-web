@@ -38,7 +38,7 @@ export default function App() {
   // The axios client fires this when a data call returns 401 (token expired /
   // auth enforcement turned on without a valid token) → return to login.
   useEffect(() => {
-    const onUnauthorized = () => logout();
+  const onUnauthorized = () => logout({ expired: true });
     window.addEventListener('nxs:unauthorized', onUnauthorized);
     return () => window.removeEventListener('nxs:unauthorized', onUnauthorized);
   }, [logout]);

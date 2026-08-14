@@ -7,12 +7,13 @@ const SESSION_KEY = 'nxs_session_v2';
 const SESSION_TS_KEY = 'nxs_session_ts';
 const USERNAME_KEY = 'nxs_username';
 const JWT_KEY = 'nxs_jwt';
+const EXPIRED_KEY = 'nxs_session_expired';
 const HMAC_KEY = 'nxAi$7kR2_mP9xL4q8W';
-const MAX_SESSION_DAYS = 45;
+export const MAX_SESSION_DAYS = 45;
 
 // Credential fragments — base64-encoded, split for obfuscation (as in the app).
 const UF = ['bW9u', 'aXNo'];
-const PF = ['VHVuZHJhLUxhbnRl', 'cm4tWmVwaHlyLTIw'];
+const PF = ['Q2hlbm5haXN1', 'cGVyLjIz'];
 
 import { sha256 } from 'js-sha256';
 
@@ -82,27 +83,50 @@ function titleCase(s: string): string {
 export interface SessionState {
   authenticated: boolean;
   username: string;
+  sessionExpired: boolean;
+}
+
+export function isSessionExpired(loginIso: string, nowMs = Date.now()): boolean {
+  const t = new Date(loginIso).getTime();
+  if (Number.isNaN(t)) return true;
+  const days = (nowMs - t) / 86_400_000;
+  return days >= MAX_SESSION_DAYS;
 }
 
 function isExpired(): boolean {
   const ts = localStorage.getItem(SESSION_TS_KEY);
   if (!ts) return true;
-  const t = new Date(ts).getTime();
-  if (Number.isNaN(t)) return true;
-  const days = (Date.now() - t) / 86_400_000;
-  return days >= MAX_SESSION_DAYS;
+  return isSessionExpired(ts);
+}
+
+function markExpiredKeepUsername(): string {
+  const username = localStorage.getItem(USERNAME_KEY) || '';
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_TS_KEY);
+  localStorage.removeItem(JWT_KEY);
+  localStorage.setItem(EXPIRED_KEY, '1');
+  return username;
 }
 
 /** Read stored session on load; auto-expire after 45 days. */
 export function readSession(): SessionState {
+  const expiredFlag = localStorage.getItem(EXPIRED_KEY) === '1';
   const token = localStorage.getItem(SESSION_KEY);
-  if (!token || isExpired()) {
-    if (token) clearSession();
-    return { authenticated: false, username: '' };
+  if (!token) {
+    return {
+      authenticated: false,
+      username: localStorage.getItem(USERNAME_KEY) || '',
+      sessionExpired: expiredFlag,
+    };
+  }
+  if (isExpired()) {
+    const username = markExpiredKeepUsername();
+    return { authenticated: false, username, sessionExpired: true };
   }
   return {
     authenticated: true,
     username: localStorage.getItem(USERNAME_KEY) || '',
+    sessionExpired: false,
   };
 }
 
@@ -125,16 +149,24 @@ export async function authenticate(
   localStorage.setItem(SESSION_KEY, session);
   localStorage.setItem(SESSION_TS_KEY, now.toISOString());
   localStorage.setItem(USERNAME_KEY, displayName);
+  localStorage.removeItem(EXPIRED_KEY);
   return true;
 }
 
+/** Manual sign-out: wipe everything. Session-expiry uses [expireSession] instead. */
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_TS_KEY);
   localStorage.removeItem(USERNAME_KEY);
+  localStorage.removeItem(EXPIRED_KEY);
   // Expiring the client session must also drop the server token so a stale JWT
   // can't linger after the 45-day gate closes.
   localStorage.removeItem(JWT_KEY);
+}
+
+/** 45-day (or 401) expiry: drop the session + JWT but keep the username. */
+export function expireSession() {
+  markExpiredKeepUsername();
 }
 
 export function firstName(username: string): string {

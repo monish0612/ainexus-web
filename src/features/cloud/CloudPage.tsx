@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -27,11 +27,11 @@ import { formatBytes, uuid } from '@/lib/format';
 import {
   DriveFile,
   deleteFile,
-  downloadUrl,
+  downloadFile,
   fetchQuota,
+  fetchThumbnailObjectUrl,
   listFiles,
   starFile,
-  thumbnailUrl,
   uploadFile,
 } from '@/lib/api/cloud';
 
@@ -82,6 +82,32 @@ function fileGlyph(f: DriveFile) {
   if (f.mimeType.includes('pdf') || f.ext === 'pdf' || f.mimeType.includes('text'))
     return <FileText size={26} />;
   return <FileIcon size={26} />;
+}
+
+function AuthThumbnail({ id }: { id: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    fetchThumbnailObjectUrl(id)
+      .then((url) => {
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        objectUrl = url;
+        setSrc(url);
+      })
+      .catch(() => {
+        /* fall back to glyph-less empty tile */
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id]);
+  if (!src) return null;
+  return <img src={src} alt="" className="h-full w-full object-cover" />;
 }
 
 export default function CloudPage() {
@@ -264,15 +290,7 @@ export default function CloudPage() {
                   >
                     <div className="relative grid h-28 place-items-center bg-bg2 text-fg3">
                       {f.isImage ? (
-                        <img
-                          src={thumbnailUrl(f.id)}
-                          alt=""
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                        <AuthThumbnail id={f.id} />
                       ) : (
                         fileGlyph(f)
                       )}
@@ -292,12 +310,17 @@ export default function CloudPage() {
                       </p>
                       <p className="text-xs text-fg4">{formatBytes(f.size)}</p>
                       <div className="mt-2 flex items-center gap-1">
-                        <a
-                          href={downloadUrl(f.id)}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadFile(f.id, f.name).catch((err) =>
+                              toast(apiErrorMessage(err), 'error'),
+                            );
+                          }}
                           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg3 py-1.5 text-xs font-semibold text-fg2 transition hover:text-fg"
                         >
                           <Download size={14} /> Download
-                        </a>
+                        </button>
                         <button
                           onClick={() => del.mutate(f.id)}
                           className="rounded-lg bg-bg3 p-1.5 text-fg3 transition hover:bg-red-500/15 hover:text-red-400"

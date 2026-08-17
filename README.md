@@ -26,7 +26,7 @@ The dev server proxies `/api` to the backend. Override the target:
 
 ```bash
 # web/.env (copy from .env.example)
-VITE_DEV_API_TARGET=http://72.60.219.97:3000
+VITE_DEV_API_TARGET=https://monishlabs.com
 ```
 
 Build & typecheck:

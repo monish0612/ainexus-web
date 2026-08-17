@@ -158,10 +158,35 @@ export async function starFile(id: string, starred: boolean): Promise<DriveFile>
   return data.file;
 }
 
-export function downloadUrl(id: string, inline = false): string {
-  return `/api/v1/cloud/files/${id}/download${inline ? '?inline=1' : ''}`;
+/** Authenticated download — `<a href>` cannot send the app JWT. */
+export async function downloadFile(id: string, filename: string): Promise<void> {
+  const { data } = await api.get(`/cloud/files/${id}/download`, {
+    responseType: 'blob',
+    timeout: 0,
+  });
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
-export function thumbnailUrl(id: string, size = 320): string {
-  return `/api/v1/cloud/files/${id}/thumbnail?size=${size}`;
+/** Authenticated thumbnail blob URL. Caller must revoke it. */
+export async function fetchThumbnailObjectUrl(
+  id: string,
+  size = 320,
+): Promise<string> {
+  const { data } = await api.get(`/cloud/files/${id}/thumbnail`, {
+    params: { size },
+    responseType: 'blob',
+  });
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  return URL.createObjectURL(blob);
 }

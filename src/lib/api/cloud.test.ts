@@ -5,7 +5,7 @@ vi.mock('./client', () => ({
   api: { post: vi.fn(), put: vi.fn(), get: vi.fn() },
 }));
 
-import { uploadFile } from './cloud';
+import { uploadFile, downloadFile } from './cloud';
 import { api } from './client';
 
 const mockApi = api as unknown as {
@@ -106,5 +106,28 @@ describe('uploadFile resumable (>8MB)', () => {
 
     expect(res).toEqual({ id: 'FIN' });
     expect(mockApi.get).toHaveBeenCalledWith('/cloud/upload/resumable/U3/status');
+  });
+});
+
+describe('downloadFile', () => {
+  it('pulls the file as a blob through the authenticated axios client', async () => {
+    mockApi.get.mockResolvedValue({ data: new Blob(['hi']) });
+    const create = vi.fn(() => 'blob:test');
+    const revoke = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL: create, revokeObjectURL: revoke });
+    const click = vi.fn();
+    const el = { href: '', download: '', click, remove: vi.fn() };
+    vi.spyOn(document, 'createElement').mockReturnValue(el as unknown as HTMLElement);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((n) => n);
+
+    await downloadFile('file-1', 'photo.png');
+
+    expect(mockApi.get).toHaveBeenCalledWith(
+      '/cloud/files/file-1/download',
+      expect.objectContaining({ responseType: 'blob' }),
+    );
+    expect(el.download).toBe('photo.png');
+    expect(click).toHaveBeenCalled();
+    expect(revoke).toHaveBeenCalledWith('blob:test');
   });
 });

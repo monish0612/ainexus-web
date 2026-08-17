@@ -314,7 +314,7 @@ export default function CloudPage() {
                           type="button"
                           onClick={() => {
                             downloadFile(f.id, f.name).catch((err) =>
-                              toast(apiErrorMessage(err), 'error'),
+                              toast.error(apiErrorMessage(err, 'Download failed')),
                             );
                           }}
                           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg3 py-1.5 text-xs font-semibold text-fg2 transition hover:text-fg"

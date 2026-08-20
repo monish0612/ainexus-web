@@ -18,7 +18,7 @@ export function sampleFromEnvelope(env: NasStatsEnvelope, atMs = Date.now()): Li
   const nasOn = env.online;
   const disk = mainPool(snap)?.usedPct ?? moviesUsedPct(snap?.movies);
   return {
-    at: Math.floor(atMs / 1000),
+    at: env.at ?? Math.floor(atMs / 1000),
     nasCpu: nasOn ? (snap?.cpu?.pct ?? null) : 0,
     nasRam: nasOn ? memUsedPct(snap?.memory) : 0,
     nasDisk: nasOn ? (disk == null ? null : Number(disk)) : 0,
@@ -40,7 +40,13 @@ export function appendLiveSample(
   cap = 180,
 ): LiveSample[] {
   const cut = next.at - windowS;
-  const kept = [...prev.filter((p) => p.at >= cut), next];
+  const kept = prev.filter((p) => p.at >= cut);
+  const last = kept[kept.length - 1];
+  if (last && Math.abs(last.at - next.at) < 1) {
+    kept[kept.length - 1] = next;
+  } else {
+    kept.push(next);
+  }
   return kept.length <= cap ? kept : kept.slice(kept.length - cap);
 }
 

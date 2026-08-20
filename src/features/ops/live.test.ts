@@ -33,15 +33,15 @@ describe('formatBytes / billing copy', () => {
 });
 
 describe('live buffer', () => {
-  const env = (online: boolean, cpu: number): NasStatsEnvelope => ({
+  const env = (online: boolean, cpu: number, at = 1): NasStatsEnvelope => ({
     online,
     reason: online ? null : 'unreachable',
-    at: 1,
+    at,
     ageS: 0,
-    lastSeenAt: 1,
+    lastSeenAt: at,
     snapshot: online
       ? {
-          at: 1,
+          at,
           host: 'truenas',
           version: '1',
           uptimeS: 1,
@@ -68,10 +68,17 @@ describe('live buffer', () => {
   });
 
   it('drops points older than the window and caps length', () => {
-    let buf = appendLiveSample([], sampleFromEnvelope(env(true, 10), 1_000), 3, 4);
-    buf = appendLiveSample(buf, sampleFromEnvelope(env(true, 20), 2_000), 3, 4);
-    buf = appendLiveSample(buf, sampleFromEnvelope(env(true, 30), 6_000), 3, 4);
+    let buf = appendLiveSample([], sampleFromEnvelope(env(true, 10, 1)), 3, 4);
+    buf = appendLiveSample(buf, sampleFromEnvelope(env(true, 20, 2)), 3, 4);
+    buf = appendLiveSample(buf, sampleFromEnvelope(env(true, 30, 6)), 3, 4);
     expect(buf.map((s) => s.nasCpu)).toEqual([30]);
+  });
+
+  it('two samples in the same second replace rather than twin', () => {
+    let buf = appendLiveSample([], sampleFromEnvelope(env(true, 10, 100)));
+    buf = appendLiveSample(buf, sampleFromEnvelope(env(true, 44, 100)));
+    expect(buf).toHaveLength(1);
+    expect(buf[0].nasCpu).toBe(44);
   });
 
   it('records NAS zeros when the envelope is offline so the chart matches the gauges', () => {

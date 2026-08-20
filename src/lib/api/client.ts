@@ -5,6 +5,13 @@ import axios, {
 } from 'axios';
 import { getToken } from '@/features/auth/token';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Opt a live poll out of the 3-retry backoff. */
+    skipRetry?: boolean;
+  }
+}
+
 // All calls are same-origin: the Vite dev proxy / production nginx forward
 // `<base>/api/*` to the backend, so there is no CORS or mixed-content problem.
 // BASE_URL is the deploy subpath ('/nexusai/'), so this resolves to
@@ -32,6 +39,14 @@ const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
 interface RetryConfig extends InternalAxiosRequestConfig {
   _retryCount?: number;
+  skipRetry?: boolean;
+}
+
+/** Live stats poll every 1s — a retry queue would freeze the gauges. */
+export function shouldSkipHttpRetry(url?: string, skipRetry?: boolean): boolean {
+  if (skipRetry) return true;
+  if (!url) return false;
+  return url.includes('/cloud/stats');
 }
 
 function isRetryable(error: AxiosError): boolean {
@@ -66,7 +81,9 @@ api.interceptors.response.use(
       throw error;
     }
 
-    if (!config || !isRetryable(error)) throw error;
+    if (!config || shouldSkipHttpRetry(config.url, config.skipRetry) || !isRetryable(error)) {
+      throw error;
+    }
 
     config._retryCount = (config._retryCount ?? 0) + 1;
     if (config._retryCount > MAX_RETRIES) throw error;

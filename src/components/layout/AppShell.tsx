@@ -106,14 +106,14 @@ function BottomNav() {
           to={to}
           className={({ isActive }) =>
             clsx(
-              'relative flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition',
+              'relative flex flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold transition sm:text-[11px]',
               isActive ? 'text-fg' : 'text-fg4',
             )
           }
         >
           {({ isActive }) => (
             <>
-              <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
+              <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
               <span>{label}</span>
               {isActive && (
                 <motion.span

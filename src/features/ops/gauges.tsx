@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -11,29 +11,25 @@ import { UNKNOWN, chartTime } from './format';
 import { GREEN, rampFor } from './chrome';
 import type { HistoryRange } from '@/lib/api/stats';
 
-export function useTween(target: number | null, ms = 700): number | null {
-  const [shown, setShown] = useState(target);
-  const current = useRef(target);
+export function useTween(target: number | null, ms = 700): number {
+  const aim = target ?? 0;
+  const [shown, setShown] = useState(aim);
+  const current = useRef(aim);
   useEffect(() => {
-    if (target == null) {
-      current.current = null;
-      setShown(null);
-      return;
-    }
-    const from = current.current ?? target;
+    const from = current.current;
     const start = performance.now();
     let id = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / ms);
       const eased = 1 - (1 - t) ** 3;
-      const v = from + (target - from) * eased;
+      const v = from + (aim - from) * eased;
       current.current = v;
       setShown(v);
       if (t < 1) id = requestAnimationFrame(tick);
     };
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
-  }, [target, ms]);
+  }, [aim, ms]);
   return shown;
 }
 
@@ -47,6 +43,24 @@ export function useWide(breakpoint = 720): boolean {
     return () => window.removeEventListener('resize', on);
   }, [breakpoint]);
   return wide;
+}
+
+export function downsampleSpots(
+  spots: { t: number; v: number | null }[],
+  max = 60,
+): { t: number; v: number | null }[] {
+  if (spots.length <= max) return spots;
+  const out: { t: number; v: number | null }[] = [];
+  const last = spots.length - 1;
+  const step = last / (max - 1);
+  let prev = -1;
+  for (let i = 0; i < max; i++) {
+    const idx = i === max - 1 ? last : Math.round(i * step);
+    if (idx === prev) continue;
+    out.push(spots[idx]);
+    prev = idx;
+  }
+  return out;
 }
 
 export function FluidGauge({
@@ -67,15 +81,14 @@ export function FluidGauge({
   onClick?: () => void;
 }) {
   const shown = useTween(value);
-  const pct = shown == null ? 0 : Math.max(0, Math.min(100, shown));
-  const stroke = color ?? rampFor(pct);
-  const r = 36;
+  const pct = Math.max(0, Math.min(100, shown));
+  const stroke = color ?? rampFor(value ?? pct);
+  const r = 34;
   const c = 2 * Math.PI * r;
-  const offset = c * (1 - pct / 100);
-  const display =
-    value == null && shown == null
-      ? UNKNOWN
-      : `${(shown ?? 0).toFixed(decimals)}%`;
+  const arc = c * 0.75;
+  const gap = c - arc;
+  const offset = value == null ? arc : arc * (1 - pct / 100);
+  const display = value == null ? UNKNOWN : `${shown.toFixed(decimals)}%`;
 
   return (
     <button
@@ -84,22 +97,33 @@ export function FluidGauge({
       className="group flex flex-col items-center gap-1 rounded-2xl p-1 text-center transition hover:bg-bg3/60"
     >
       <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
-          <circle cx="40" cy="40" r={r} fill="none" stroke="var(--bg3)" strokeWidth="8" />
-          <circle
-            cx="40"
-            cy="40"
-            r={r}
-            fill="none"
-            stroke={stroke}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.4s' }}
-          />
+        <svg viewBox="0 0 80 80" className="h-full w-full">
+          <g transform="rotate(135 40 40)">
+            <circle
+              cx="40"
+              cy="40"
+              r={r}
+              fill="none"
+              stroke="var(--bg3)"
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${arc} ${gap}`}
+            />
+            <circle
+              cx="40"
+              cy="40"
+              r={r}
+              fill="none"
+              stroke={stroke}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${arc} ${gap}`}
+              strokeDashoffset={offset}
+              style={{ filter: value == null ? undefined : `drop-shadow(0 0 3px ${stroke}88)` }}
+            />
+          </g>
         </svg>
-        <div className="absolute inset-0 grid place-items-center">
+        <div className="absolute inset-0 grid place-items-center pb-2">
           <span className="font-mono text-lg font-extrabold tabular-nums text-fg sm:text-xl">
             {display}
           </span>
@@ -127,7 +151,7 @@ export function FluidBar({ fraction, color, height = 10 }: { fraction: number; c
   );
 }
 
-export function LiveSparkline({
+export const LiveSparkline = memo(function LiveSparkline({
   spots,
   height = 96,
   interactive = false,
@@ -140,7 +164,11 @@ export function LiveSparkline({
   range?: HistoryRange;
   color?: string;
 }) {
-  const data = spots.map((s) => ({ t: s.t, v: s.v ?? null }));
+  const reactId = useId().replace(/:/g, '');
+  const data = useMemo(
+    () => (interactive ? spots : downsampleSpots(spots, 64)),
+    [spots, interactive],
+  );
   if (data.length < 2) {
     return (
       <div
@@ -151,13 +179,16 @@ export function LiveSparkline({
       </div>
     );
   }
-  const id = `spark-${color.replace('#', '')}-${height}`;
+  const gid = `spark-${reactId}`;
   return (
-    <div style={{ height }}>
+    <div style={{ height, pointerEvents: interactive ? 'auto' : 'none' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <AreaChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+          >
           <defs>
-            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.35} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
@@ -174,11 +205,10 @@ export function LiveSparkline({
               />
               <YAxis
                 domain={[0, 100]}
-                width={28}
+                width={32}
                 tick={{ fill: 'var(--text3)', fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                unit="%"
               />
               <Tooltip
                 contentStyle={{
@@ -197,7 +227,7 @@ export function LiveSparkline({
             dataKey="v"
             stroke={color}
             strokeWidth={2}
-            fill={`url(#${id})`}
+            fill={`url(#${gid})`}
             connectNulls={false}
             isAnimationActive={false}
             dot={false}
@@ -206,4 +236,4 @@ export function LiveSparkline({
       </ResponsiveContainer>
     </div>
   );
-}
+});

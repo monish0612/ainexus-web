@@ -109,25 +109,27 @@ export function OverviewPanel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Film headroom">
-          <button type="button" onClick={() => onOpen('nasDisk')} className="w-full text-left">
-            <p className="font-mono text-4xl font-extrabold tabular-nums text-fg">
-              {movies?.headlineFreeGb ?? '—'}
-              <span className="ml-1.5 text-lg text-fg3">GB free</span>
-            </p>
-            <div className="mt-3">
-              <FluidBar fraction={used / 100} color={rampFor(mainPool(snap)?.usedPct ?? used)} />
-            </div>
-            <p className="mt-2 text-[12px] text-fg3">
-              Media dataset {movies?.dataset ?? 'Storage/media'} · tap for the live disk chart
-            </p>
-          </button>
-          {holdIsMeaningful(snap?.snapshots) && (
-            <div className="mt-3">
-              <Note
-                text={`Snapshots still hold ${holdGb(snap?.snapshots).toFixed(1)} GB. Deletes take 14 days to show as free space.`}
-              />
-            </div>
-          )}
+          <div className={env.online ? undefined : 'pointer-events-none grayscale opacity-50'}>
+            <button type="button" onClick={() => onOpen('nasDisk')} className="w-full text-left">
+              <p className="font-mono text-4xl font-extrabold tabular-nums text-fg">
+                {movies?.headlineFreeGb ?? '—'}
+                <span className="ml-1.5 text-lg text-fg3">GB free</span>
+              </p>
+              <div className="mt-3">
+                <FluidBar fraction={used / 100} color={rampFor(mainPool(snap)?.usedPct ?? used)} />
+              </div>
+              <p className="mt-2 text-[12px] text-fg3">
+                Media dataset {movies?.dataset ?? 'Storage/media'} · tap for the live disk chart
+              </p>
+            </button>
+            {holdIsMeaningful(snap?.snapshots) && (
+              <div className="mt-3">
+                <Note
+                  text={`Snapshots still hold ${holdGb(snap?.snapshots).toFixed(1)} GB. Deletes take 14 days to show as free space.`}
+                />
+              </div>
+            )}
+          </div>
         </Card>
 
         <Card title="Billing & domain">
@@ -164,29 +166,33 @@ export function OverviewPanel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="NAS CPU · last 3 minutes">
-          <button type="button" className="w-full" onClick={() => onOpen('nasCpu')}>
-            <LiveSparkline spots={spotsForMetric(live, 'nasCpu')} height={140} interactive />
-          </button>
+          <div className={env.online ? undefined : 'pointer-events-none grayscale opacity-50'}>
+            <button type="button" className="w-full" onClick={() => onOpen('nasCpu')}>
+              <LiveSparkline spots={spotsForMetric(live, 'nasCpu')} height={140} />
+            </button>
+          </div>
         </Card>
         <Card title="VPS CPU · last 3 minutes">
           <button type="button" className="w-full" onClick={() => onOpen('vpsCpu')}>
-            <LiveSparkline spots={spotsForMetric(live, 'vpsCpu')} height={140} interactive />
+            <LiveSparkline spots={spotsForMetric(live, 'vpsCpu')} height={140} />
           </button>
         </Card>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Mini
           icon={<Server size={16} />}
           label="VPS RAM"
           value={formatPct(vps?.memPct, 1)}
           hint={vps?.memFreeGb != null ? `${formatGb(vps.memFreeGb)} free` : undefined}
+          onClick={() => onOpen('vpsRam')}
         />
         <Mini
           icon={<HardDrive size={16} />}
           label="VPS disk"
           value={formatPct(vps?.diskPct, 1)}
           hint={vps?.diskFreeGb != null ? `${formatGb(vps.diskFreeGb)} free` : undefined}
+          onClick={() => onOpen('vpsDisk')}
         />
         <Mini
           icon={<Cloud size={16} />}
@@ -194,6 +200,7 @@ export function OverviewPanel({
           value={formatPct(vps?.stealPct, 1)}
           hint="via NAS · 5 min"
           warn={(vps?.stealPct ?? 0) >= 20}
+          onClick={() => onOpen('vpsSteal')}
         />
         <Mini
           icon={<Thermometer size={16} />}
@@ -204,7 +211,7 @@ export function OverviewPanel({
         <Mini
           icon={<Film size={16} />}
           label="Playing"
-          value={String(snap?.playback?.count ?? 0)}
+          value={snap?.playback?.count == null ? '—' : String(snap.playback.count)}
           hint="Jellyfin sessions"
         />
         <Mini
@@ -272,15 +279,17 @@ function Mini({
   value,
   hint,
   warn,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   hint?: string;
   warn?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="card flex items-start gap-3 p-4">
+  const inner = (
+    <>
       <span className="text-fg3">{icon}</span>
       <div className="min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-wider text-fg3">{label}</p>
@@ -289,15 +298,24 @@ function Mini({
         </p>
         {hint && <p className="text-[11px] text-fg4">{hint}</p>}
       </div>
-    </div>
+    </>
   );
+  const cls = 'card flex items-start gap-3 p-4 text-left transition hover:bg-bg3/50';
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cls}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className={cls}>{inner}</div>;
 }
 
 function hottest(disks: { tempC: number | null; name: string | null }[] | undefined): string {
   if (!disks?.length) return '—';
   const ranked = disks.filter((d) => d.tempC != null).sort((a, b) => (b.tempC ?? 0) - (a.tempC ?? 0));
   const top = ranked[0];
-  if (!top?.tempC) return '—';
+  if (top?.tempC == null) return '—';
   return `${top.tempC}°C ${top.name ?? ''}`.trim();
 }
 

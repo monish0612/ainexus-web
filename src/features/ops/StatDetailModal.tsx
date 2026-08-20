@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Segmented, Spinner } from '@/components/ui/primitives';
 import type { HistoryRange, StatMetric } from '@/lib/api/stats';
@@ -18,11 +18,16 @@ export function StatDetailModal({
 }) {
   const [range, setRange] = useState<HistoryRange>('now');
   const meta = metric ? METRIC_META[metric] : null;
+
+  useEffect(() => {
+    setRange('now');
+  }, [metric]);
   const hist = useQuery({
     queryKey: ['ops-history', range, metric],
     queryFn: () => fetchHistory(range),
     enabled: metric != null && range !== 'now',
     staleTime: 15_000,
+    retry: false,
   });
 
   const spots = useMemo(() => {
@@ -54,6 +59,10 @@ export function StatDetailModal({
         {range !== 'now' && hist.isLoading ? (
           <div className="grid h-64 place-items-center text-fg3">
             <Spinner size={22} />
+          </div>
+        ) : range !== 'now' && hist.isError ? (
+          <div className="grid h-64 place-items-center px-6 text-center text-[13px] leading-relaxed text-fg3">
+            History could not be loaded. The live 1-second view is still running — switch back to Now.
           </div>
         ) : (
           <LiveSparkline spots={spots} height={280} interactive range={range} />

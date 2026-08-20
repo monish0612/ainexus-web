@@ -32,9 +32,9 @@ export default function OpsPage() {
     queryKey: ['ops-stats'],
     queryFn: fetchStats,
     refetchInterval: 1000,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     staleTime: 0,
-    retry: 1,
+    retry: false,
     refetchOnWindowFocus: true,
   });
 
@@ -150,7 +150,7 @@ export default function OpsPage() {
                 env={env}
                 live={live}
                 wide={wide}
-                offline={nasOffline || transportError}
+                offline={nasOffline}
                 onOpen={setMetric}
               />
             )}

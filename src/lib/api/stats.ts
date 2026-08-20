@@ -512,13 +512,17 @@ export function emptyHistory(range: HistoryRange): StatsHistoryEnvelope {
 }
 
 export async function fetchStats(): Promise<NasStatsEnvelope> {
-  const { data } = await api.get('/cloud/stats');
+  const { data } = await api.get('/cloud/stats', { timeout: 4000, skipRetry: true });
   return parseEnvelope(data);
 }
 
 export async function fetchHistory(range: HistoryRange): Promise<StatsHistoryEnvelope> {
   try {
-    const { data } = await api.get('/cloud/stats/history', { params: { range } });
+    const { data } = await api.get('/cloud/stats/history', {
+      params: { range },
+      timeout: 8000,
+      skipRetry: true,
+    });
     return parseHistory(data);
   } catch (err) {
     if (axios.isAxiosError(err) && err.response?.status === 404) {

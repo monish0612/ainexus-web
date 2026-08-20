@@ -11,6 +11,7 @@ const ExpensePage = lazy(() => import('./features/expense/ExpensePage'));
 const NewsPage = lazy(() => import('./features/news/NewsPage'));
 const TutorPage = lazy(() => import('./features/tutor/TutorPage'));
 const CloudPage = lazy(() => import('./features/cloud/CloudPage'));
+const OpsPage = lazy(() => import('./features/ops/OpsPage'));
 
 function PageFallback() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/expense/*" element={<ExpensePage />} />
             <Route path="/news/*" element={<NewsPage />} />
             <Route path="/tutor/*" element={<TutorPage />} />
+            <Route path="/ops" element={<OpsPage />} />
             <Route path="/cloud/*" element={<CloudPage />} />
           </Route>
           <Route path="*" element={<Navigate to={authed ? '/expense' : '/login'} replace />} />

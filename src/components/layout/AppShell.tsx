@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Cloud, GraduationCap, Newspaper, Wallet } from 'lucide-react';
+import { Activity, Cloud, GraduationCap, Newspaper, Wallet } from 'lucide-react';
 import clsx from 'clsx';
 import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -8,6 +8,7 @@ import { firstName } from '@/features/auth/authService';
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer';
 
 const NAV = [
+  { to: '/ops', label: 'Ops', icon: Activity },
   { to: '/expense', label: 'Expense', icon: Wallet },
   { to: '/news', label: 'News', icon: Newspaper },
   { to: '/tutor', label: 'Tutor', icon: GraduationCap },

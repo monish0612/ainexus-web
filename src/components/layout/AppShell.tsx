@@ -6,6 +6,7 @@ import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { firstName } from '@/features/auth/authService';
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 const NAV = [
   { to: '/ops', label: 'Ops', icon: Activity },
@@ -17,16 +18,7 @@ const NAV = [
 
 function Avatar({ onClick }: { onClick: () => void }) {
   const username = useAuthStore((s) => s.username);
-  const initial = (firstName(username)[0] || 'N').toUpperCase();
-  return (
-    <button
-      onClick={onClick}
-      className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-white shadow-glow ring-2 ring-accent/30 transition hover:scale-105"
-      aria-label="Open settings"
-    >
-      {initial}
-    </button>
-  );
+  return <UserAvatar username={firstName(username) || username} onClick={onClick} />;
 }
 
 function Sidebar() {
@@ -75,7 +67,7 @@ function Sidebar() {
         onClick={openSettings}
         className="mt-2 flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-fg3 transition hover:bg-bg2 hover:text-fg"
       >
-        <Avatar onClick={openSettings} />
+        <Avatar />
         <span>Settings</span>
       </button>
     </aside>

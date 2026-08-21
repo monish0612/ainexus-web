@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
+import { useProfilePhotoStore } from './store/profilePhotoStore';
 import { AppShell } from './components/layout/AppShell';
 import { ToastViewport } from './components/ui/toast';
 import { Spinner } from './components/ui/primitives';
@@ -31,10 +32,17 @@ export default function App() {
   const authed = useAuthStore((s) => s.authenticated);
   const logout = useAuthStore((s) => s.logout);
   const syncFromServer = useSettingsStore((s) => s.syncFromServer);
+  const hydratePhoto = useProfilePhotoStore((s) => s.hydrate);
+  const resetPhoto = useProfilePhotoStore((s) => s.reset);
 
   useEffect(() => {
-    if (authed) syncFromServer();
-  }, [authed, syncFromServer]);
+    if (authed) {
+      syncFromServer();
+      void hydratePhoto();
+    } else {
+      resetPhoto();
+    }
+  }, [authed, syncFromServer, hydratePhoto, resetPhoto]);
 
   // The axios client fires this when a data call returns 401 (token expired /
   // auth enforcement turned on without a valid token) → return to login.

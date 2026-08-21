@@ -1,12 +1,15 @@
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LogOut, Moon, RefreshCw, Sun, X } from 'lucide-react';
+import { Camera, Image as ImageIcon, LogOut, Moon, RefreshCw, Sun, Trash2, X } from 'lucide-react';
 import { Segmented, Spinner } from '@/components/ui/primitives';
 import { Provider, useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
+import { useProfilePhotoStore } from '@/store/profilePhotoStore';
 import { fetchModels } from '@/lib/api/settings';
 import { BanksSection } from './BanksSection';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface Props {
   open: boolean;
@@ -89,6 +92,13 @@ function TextField({
 export function SettingsDrawer({ open, onClose }: Props) {
   const s = useSettingsStore();
   const { username, logout } = useAuthStore();
+  const photoUrl = useProfilePhotoStore((st) => st.url);
+  const photoBusy = useProfilePhotoStore((st) => st.busy);
+  const photoError = useProfilePhotoStore((st) => st.error);
+  const setFromFile = useProfilePhotoStore((st) => st.setFromFile);
+  const removePhoto = useProfilePhotoStore((st) => st.remove);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
 
   const modelsQuery = useQuery({
     queryKey: ['ai-models'],
@@ -118,9 +128,7 @@ export function SettingsDrawer({ open, onClose }: Props) {
             {/* Header / profile */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 font-bold text-white">
-                  {(username[0] || 'N').toUpperCase()}
-                </div>
+                <UserAvatar username={username || 'Nexus'} size={40} />
                 <div>
                   <p className="font-bold text-fg">{username || 'Nexus'}</p>
                   <p className="text-xs text-fg3">Settings</p>
@@ -136,6 +144,61 @@ export function SettingsDrawer({ open, onClose }: Props) {
 
             {/* Body */}
             <div className="flex flex-1 flex-col gap-7 overflow-y-auto p-5">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (f) void setFromFile(f).catch(() => {});
+                }}
+              />
+              <input
+                ref={camRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (f) void setFromFile(f).catch(() => {});
+                }}
+              />
+              <Section title="Profile photo" subtitle="Shown on the phone and on the web after you sign in.">
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    disabled={photoBusy}
+                    onClick={() => camRef.current?.click()}
+                    className="flex items-center gap-2 rounded-xl border border-line bg-bg2 px-4 py-3 text-sm font-semibold text-fg2 hover:text-fg disabled:opacity-50"
+                  >
+                    <Camera size={17} /> Take photo
+                  </button>
+                  <button
+                    type="button"
+                    disabled={photoBusy}
+                    onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-2 rounded-xl border border-line bg-bg2 px-4 py-3 text-sm font-semibold text-fg2 hover:text-fg disabled:opacity-50"
+                  >
+                    <ImageIcon size={17} /> {photoUrl ? 'Change photo' : 'Choose from gallery'}
+                  </button>
+                  {photoUrl && (
+                    <button
+                      type="button"
+                      disabled={photoBusy}
+                      onClick={() => void removePhoto().catch(() => {})}
+                      className="flex items-center gap-2 rounded-xl border border-line bg-bg2 px-4 py-3 text-sm font-semibold text-red-400 hover:text-red-300 disabled:opacity-50"
+                    >
+                      <Trash2 size={17} /> Remove photo
+                    </button>
+                  )}
+                  {photoBusy && <p className="text-xs text-fg4">Saving…</p>}
+                  {photoError && <p className="text-xs text-red-400">{photoError}</p>}
+                </div>
+              </Section>
               <Section title="Theme">
                 <Segmented
                   value={s.theme}

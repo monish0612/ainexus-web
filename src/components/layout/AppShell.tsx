@@ -16,7 +16,7 @@ const NAV = [
   { to: '/cloud', label: 'Cloud', icon: Cloud },
 ];
 
-function Avatar({ onClick }: { onClick: () => void }) {
+function Avatar({ onClick }: { onClick?: () => void }) {
   const username = useAuthStore((s) => s.username);
   return <UserAvatar username={firstName(username) || username} onClick={onClick} />;
 }

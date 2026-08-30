@@ -106,13 +106,33 @@ function gbFromMb(mb: number): string {
   return gb >= 10 || gb === Math.round(gb) ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`;
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/** Local clock / calendar labels for the enlarged sparkline. Deterministic — no toLocale. */
 export function chartTime(epochS: number, range: 'now' | '7d' | '30d'): string {
+  if (!Number.isFinite(epochS)) return UNKNOWN;
   const d = new Date(epochS * 1000);
+  if (Number.isNaN(d.getTime())) return UNKNOWN;
   if (range === 'now') {
-    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
   }
   if (range === '7d') {
-    return d.toLocaleString('en-IN', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    return `${WEEKDAYS[d.getDay()]} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+/** Four evenly spaced epoch-second ticks so 7D/30D labels do not vanish. */
+export function chartAxisTicks(times: number[], count = 4): number[] {
+  const finite = times.filter((t) => Number.isFinite(t));
+  if (!finite.length) return [];
+  const min = finite[0];
+  const max = finite[finite.length - 1];
+  if (max <= min) return [min];
+  const n = Math.max(2, count);
+  return Array.from({ length: n }, (_, i) => min + ((max - min) * i) / (n - 1));
 }

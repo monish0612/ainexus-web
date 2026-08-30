@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { UNKNOWN, chartTime } from './format';
+import { UNKNOWN, chartAxisTicks, chartTime } from './format';
 import { GREEN, rampFor } from './chrome';
 import type { HistoryRange } from '@/lib/api/stats';
 
@@ -165,9 +165,14 @@ export const LiveSparkline = memo(function LiveSparkline({
   color?: string;
 }) {
   const reactId = useId().replace(/:/g, '');
-  const data = useMemo(
-    () => (interactive ? spots : downsampleSpots(spots, 64)),
-    [spots, interactive],
+  const data = useMemo(() => {
+    if (!interactive) return downsampleSpots(spots, 64);
+    if (range === 'now') return spots;
+    return downsampleSpots(spots, 360);
+  }, [spots, interactive, range]);
+  const axisTicks = useMemo(
+    () => (interactive ? chartAxisTicks(data.map((p) => p.t)) : []),
+    [interactive, data],
   );
   if (data.length < 2) {
     return (
@@ -185,7 +190,7 @@ export const LiveSparkline = memo(function LiveSparkline({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
             data={data}
-            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            margin={{ top: 8, right: 12, left: 4, bottom: interactive ? 8 : 0 }}
           >
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
@@ -196,12 +201,18 @@ export const LiveSparkline = memo(function LiveSparkline({
           {interactive && (
             <>
               <XAxis
+                type="number"
                 dataKey="t"
+                domain={['dataMin', 'dataMax']}
+                ticks={axisTicks}
+                interval={0}
                 tickFormatter={(t) => chartTime(Number(t), range)}
                 tick={{ fill: 'var(--text3)', fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                minTickGap={24}
+                minTickGap={0}
+                height={28}
+                padding={{ left: 8, right: 8 }}
               />
               <YAxis
                 domain={[0, 100]}
@@ -218,7 +229,10 @@ export const LiveSparkline = memo(function LiveSparkline({
                   fontSize: 12,
                 }}
                 labelFormatter={(t) => chartTime(Number(t), range)}
-                formatter={(v) => [`${Number(v ?? 0).toFixed(1)}%`, '']}
+                formatter={(v) => [
+                  v == null || Number.isNaN(Number(v)) ? '—' : `${Number(v).toFixed(1)}%`,
+                  '',
+                ]}
               />
             </>
           )}

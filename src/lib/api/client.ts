@@ -35,7 +35,9 @@ api.interceptors.request.use((config) => {
 });
 
 const MAX_RETRIES = 3;
-const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+// 429 is a budget: retrying it against the global API limiter makes the
+// next article-followup fail faster. 5xx / 408 still retry.
+const RETRYABLE_STATUS = new Set([408, 500, 502, 503, 504]);
 
 interface RetryConfig extends InternalAxiosRequestConfig {
   _retryCount?: number;
@@ -54,6 +56,11 @@ function isRetryable(error: AxiosError): boolean {
     return true;
   }
   const status = error.response?.status;
+  return isRetryableHttpStatus(status);
+}
+
+/** Exported for tests — 429 must not be in this set. */
+export function isRetryableHttpStatus(status?: number): boolean {
   return status != null && RETRYABLE_STATUS.has(status);
 }
 

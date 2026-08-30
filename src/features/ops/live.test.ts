@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, formatAgo, formatBytes, relativeDays, priceLabel } from './format';
+import { formatDuration, formatAgo, formatBytes, relativeDays, priceLabel, chartTime, chartAxisTicks } from './format';
 import { appendLiveSample, sampleFromEnvelope } from './live';
 import type { NasStatsEnvelope } from '@/lib/api/stats';
 
@@ -86,5 +86,28 @@ describe('live buffer', () => {
     expect(s.nasCpu).toBe(0);
     expect(s.nasRam).toBe(0);
     expect(s.vpsCpu).toBe(9);
+  });
+});
+
+describe('chart time axis', () => {
+  it('formats now as clock, 7d as weekday, 30d as calendar day', () => {
+    const at = new Date(2026, 7, 30, 17, 16, 13);
+    const epoch = at.getTime() / 1000;
+    expect(chartTime(epoch, 'now')).toBe('17:16:13');
+    expect(chartTime(epoch, '7d')).toMatch(/17:16$/);
+    expect(chartTime(epoch, '30d')).toBe('30 Aug');
+  });
+
+  it('spaces four ticks from first to last sample', () => {
+    expect(chartAxisTicks([0, 10, 90])).toEqual([0, 30, 60, 90]);
+    expect(chartAxisTicks([5])).toEqual([5]);
+    expect(chartAxisTicks([])).toEqual([]);
+    expect(chartAxisTicks([Number.NaN])).toEqual([]);
+    expect(chartAxisTicks([Number.NaN, 10])).toEqual([10]);
+  });
+
+  it('does not invent a date for an invalid epoch', () => {
+    expect(chartTime(Number.NaN, 'now')).toBe('—');
+    expect(chartTime(Number.POSITIVE_INFINITY, '30d')).toBe('—');
   });
 });

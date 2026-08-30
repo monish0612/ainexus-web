@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldSkipHttpRetry } from './client';
+import { shouldSkipHttpRetry, isRetryableHttpStatus } from './client';
 import { downsampleSpots } from '@/features/ops/gauges';
 
 describe('shouldSkipHttpRetry', () => {
@@ -21,5 +21,23 @@ describe('downsampleSpots', () => {
     expect(out.length).toBeLessThanOrEqual(60);
     expect(out[0].t).toBe(0);
     expect(out[out.length - 1].t).toBe(179);
+  });
+
+  it('downsamples a 30-day 60s series without dropping the ends', () => {
+    const n = 30 * 24 * 60;
+    const spots = Array.from({ length: n }, (_, i) => ({ t: i, v: i % 100 }));
+    const out = downsampleSpots(spots, 360);
+    expect(out.length).toBeLessThanOrEqual(360);
+    expect(out[0].t).toBe(0);
+    expect(out[out.length - 1].t).toBe(n - 1);
+  });
+});
+
+describe('isRetryableHttpStatus', () => {
+  it('retries 5xx and 408, never 429', () => {
+    expect(isRetryableHttpStatus(503)).toBe(true);
+    expect(isRetryableHttpStatus(408)).toBe(true);
+    expect(isRetryableHttpStatus(429)).toBe(false);
+    expect(isRetryableHttpStatus(400)).toBe(false);
   });
 });

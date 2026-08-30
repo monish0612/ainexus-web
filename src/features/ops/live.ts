@@ -59,5 +59,7 @@ export function historySpots(
   metric: StatMetric,
 ): { t: number; v: number | null }[] {
   const field = METRIC_META[metric].field;
-  return points.map((p) => ({ t: p.t, v: p[field] }));
+  return points
+    .map((p) => ({ t: p.t, v: p[field] }))
+    .sort((a, b) => a.t - b.t);
 }

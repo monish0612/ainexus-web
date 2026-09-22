@@ -4,7 +4,6 @@ import clsx from 'clsx';
 import { PageHeader, SubTabs } from '@/components/layout/PageHeader';
 import { EmptyState, SkeletonCard, Spinner } from '@/components/ui/primitives';
 import { NEWS_CATEGORIES } from '@/lib/constants';
-import { Article } from '@/lib/api/news';
 import { useNews, useRefreshNews } from './hooks';
 import { ArticleCard } from './ArticleCard';
 import { ArticleReader } from './ArticleReader';
@@ -17,7 +16,16 @@ export default function NewsPage() {
   const refresh = useRefreshNews();
   const [tab, setTab] = useState<Tab>('foryou');
   const [category, setCategory] = useState<string>('All');
-  const [active, setActive] = useState<Article | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // The reader has to read the LIVE article, not the object captured when the
+  // card was tapped. `toggleSave` writes through to the query cache, so a
+  // snapshot would keep rendering the pre-save pill until the sheet is closed
+  // and reopened.
+  const active = useMemo(
+    () => articles.find((a) => a.id === activeId) ?? null,
+    [articles, activeId],
+  );
 
   const filtered = useMemo(
     () => selectNewsFeed(articles, tab, category),
@@ -52,13 +60,15 @@ export default function NewsPage() {
                 { value: 'saved', label: 'Saved' },
               ]}
             />
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {/* `overflow-x-auto` also clips vertically, so the row carries the
+                padding the chips' 44px hit area needs. */}
+            <div className="flex gap-1.5 overflow-x-auto py-1.5">
               {['All', ...NEWS_CATEGORIES].map((c) => (
                 <button
                   key={c}
                   onClick={() => setCategory(c)}
                   className={clsx(
-                    'shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition',
+                    'tap-44 shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition',
                     category === c
                       ? 'border-accent bg-accent/15 text-accent'
                       : 'border-line bg-bg2 text-fg3 hover:text-fg',
@@ -91,15 +101,17 @@ export default function NewsPage() {
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featured && <ArticleCard article={featured} onOpen={setActive} featured />}
+            {featured && (
+              <ArticleCard article={featured} onOpen={(a) => setActiveId(a.id)} featured />
+            )}
             {rest.map((a) => (
-              <ArticleCard key={a.id} article={a} onOpen={setActive} />
+              <ArticleCard key={a.id} article={a} onOpen={(x) => setActiveId(x.id)} />
             ))}
           </div>
         )}
       </div>
 
-      <ArticleReader article={active} onClose={() => setActive(null)} />
+      <ArticleReader article={active} onClose={() => setActiveId(null)} />
     </div>
   );
 }

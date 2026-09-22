@@ -296,7 +296,7 @@ export default function CloudPage() {
                       )}
                       <button
                         onClick={() => star.mutate({ id: f.id, starred: !f.starred })}
-                        className={`absolute right-2 top-2 rounded-lg p-1.5 backdrop-blur transition ${
+                        className={`tap-44 absolute right-2 top-2 rounded-lg p-1.5 backdrop-blur transition ${
                           f.starred ? 'text-amber-400' : 'text-white/70 hover:text-white'
                         } bg-black/30`}
                         aria-label="Star"
@@ -317,13 +317,13 @@ export default function CloudPage() {
                               toast.error(apiErrorMessage(err, 'Download failed')),
                             );
                           }}
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg3 py-1.5 text-xs font-semibold text-fg2 transition hover:text-fg"
+                          className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg3 py-1.5 text-xs font-semibold text-fg2 transition hover:text-fg"
                         >
                           <Download size={14} /> Download
                         </button>
                         <button
                           onClick={() => del.mutate(f.id)}
-                          className="rounded-lg bg-bg3 p-1.5 text-fg3 transition hover:bg-red-500/15 hover:text-red-400"
+                          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-bg3 text-fg3 transition hover:bg-red-500/15 hover:text-red-400"
                           aria-label="Delete"
                         >
                           <Trash2 size={14} />

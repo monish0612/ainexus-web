@@ -119,7 +119,11 @@ export function DictionaryTab() {
                     {result.partOfSpeech}
                   </span>
                 )}
-                <button onClick={() => speak(result.word)} className="text-fg3 hover:text-fg">
+                <button
+                  onClick={() => speak(result.word)}
+                  aria-label={`Pronounce ${result.word}`}
+                  className="tap-44 text-fg3 hover:text-fg"
+                >
                   <Volume2 size={16} />
                 </button>
               </div>
@@ -164,7 +168,10 @@ export function DictionaryTab() {
           <div className="flex flex-col gap-2">
             {saved.map((w) => (
               <div key={w.id} className="card flex items-center gap-3 p-3.5 transition hover:border-line2">
-                <button onClick={() => openSaved(w)} className="min-w-0 flex-1 text-left">
+                <button
+                  onClick={() => openSaved(w)}
+                  className="flex min-h-[44px] min-w-0 flex-1 flex-col justify-center text-left"
+                >
                   <p className="font-semibold text-fg">
                     {w.word}{' '}
                     {w.part_of_speech && (
@@ -177,7 +184,7 @@ export function DictionaryTab() {
                 </button>
                 <button
                   onClick={() => remove.mutate(w.id)}
-                  className="shrink-0 rounded-lg p-2 text-fg4 transition hover:bg-red-500/15 hover:text-red-400"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-fg4 transition hover:bg-red-500/15 hover:text-red-400"
                   aria-label="Delete"
                 >
                   <Trash2 size={16} />

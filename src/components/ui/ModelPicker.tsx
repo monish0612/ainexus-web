@@ -1,12 +1,52 @@
 import { useEffect } from 'react';
 import { Brain, Sparkles, Zap } from 'lucide-react';
-import { Segmented } from './primitives';
+import { Segmented, SegmentedOption, SegmentedTone } from './primitives';
 import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { ModelMode } from '@/lib/modelHints';
 
-const PROVIDER_OPTS: { value: Provider; label: React.ReactNode }[] = [
+/**
+ * A mode's active chip: its own colour at low alpha as the fill, the `*-edge`
+ * token as the border, and the AA-fixed `--mode-*` text colour for the label.
+ * The saturated colour is never used as a fill behind white text — cyan-600
+ * under white is 3.7:1 and would fail AA at this weight.
+ *
+ * The fill is the pre-baked `--mode-*-fill` token, not a `color-mix()` of
+ * `--mode-*`: an engine that doesn't know `color-mix` drops the declaration
+ * and the active chip loses its fill entirely, leaving only the border to
+ * carry state.
+ */
+function modeTone(v: ModelMode): SegmentedTone {
+  const token = v === 'thinking' ? 'thinking' : v;
+  return {
+    fill: `var(--mode-${token}-fill)`,
+    edge: `var(--mode-${token}-edge)`,
+    text: `var(--mode-${token})`,
+  };
+}
+
+/**
+ * Provider identity is STRUCTURAL, not just chromatic: Gemini is a gradient in
+ * a fully-round chip, xGrok is flat slate in an angular one. Print the picker
+ * in grayscale and the two are still telling you which model you picked.
+ */
+const GEMINI_TONE: SegmentedTone = {
+  fill: 'var(--provider-gemini-fill)',
+  edge: 'var(--provider-gemini-to)',
+  text: 'var(--accent-text)',
+  radius: 'rounded-full',
+};
+
+const XGROK_TONE: SegmentedTone = {
+  fill: 'var(--provider-xgrok-fill)',
+  edge: 'var(--provider-xgrok)',
+  text: 'var(--text)',
+  radius: 'rounded-[7px]',
+};
+
+const PROVIDER_OPTS: SegmentedOption<Provider>[] = [
   {
     value: 'gemini',
+    tone: GEMINI_TONE,
     label: (
       <span className="inline-flex items-center justify-center gap-1.5">
         <Sparkles size={13} /> Gemini
@@ -15,6 +55,7 @@ const PROVIDER_OPTS: { value: Provider; label: React.ReactNode }[] = [
   },
   {
     value: 'xgrok',
+    tone: XGROK_TONE,
     label: (
       <span className="inline-flex items-center justify-center gap-1.5">
         <Brain size={13} /> xGrok
@@ -37,6 +78,12 @@ interface Props {
   /** Modes to expose. Defaults to lite + deep. `thinking` is xGrok-only and is
    *  automatically hidden when the provider is Gemini. */
   modes?: ModelMode[];
+  /**
+   * `stacked` = two full-width bars (Settings-style). `chips` = both groups
+   * hug their content and share one wrapping row, which is what the composers
+   * use so the controls read as subordinate to the field.
+   */
+  density?: 'stacked' | 'chips';
   className?: string;
 }
 
@@ -55,6 +102,7 @@ export function ModelPicker({
   onProviderChange,
   onModeChange,
   modes = ['lite', 'deep'],
+  density = 'stacked',
   className,
 }: Props) {
   const xgrokEnabled = useSettingsStore((s) => s.xgrokEnabled);
@@ -73,8 +121,9 @@ export function ModelPicker({
     }
   }, [mode, visibleModes, onModeChange]);
 
-  const modeOpts = visibleModes.map((m) => ({
+  const modeOpts: SegmentedOption<ModelMode>[] = visibleModes.map((m) => ({
     value: m,
+    tone: modeTone(m),
     label: (
       <span className="inline-flex items-center justify-center gap-1.5">
         {MODE_META[m].icon} {MODE_META[m].label}
@@ -82,16 +131,34 @@ export function ModelPicker({
     ),
   }));
 
+  const chips = density === 'chips';
+  const segmentDensity = chips ? 'chips' : 'bar';
+
   return (
-    <div className={className ?? 'flex flex-col gap-2'}>
+    <div
+      className={
+        className ?? (chips ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-2')
+      }
+    >
+      {/* Provider stays first: Thinking appears and disappears at the END of
+          the depth group, so the provider chips never shift under the cursor
+          when the user switches to xGrok. */}
       {xgrokEnabled && (
         <Segmented
           value={effectiveProvider}
           options={PROVIDER_OPTS}
           onChange={onProviderChange}
+          density={segmentDensity}
+          aria-label="AI provider"
         />
       )}
-      <Segmented value={mode} options={modeOpts} onChange={onModeChange} />
+      <Segmented
+        value={mode}
+        options={modeOpts}
+        onChange={onModeChange}
+        density={segmentDensity}
+        aria-label="Answer depth"
+      />
     </div>
   );
 }

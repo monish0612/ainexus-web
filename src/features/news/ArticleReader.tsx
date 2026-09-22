@@ -14,7 +14,8 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { Markdown } from '@/components/ui/Markdown';
 import { Lightbox } from '@/components/ui/Lightbox';
-import { Spinner } from '@/components/ui/primitives';
+import { AiComposer } from '@/components/ui/AiComposer';
+import { AiWait } from '@/components/ui/AiWait';
 import { ModelPicker } from '@/components/ui/ModelPicker';
 import { ModelBadge } from '@/components/ui/ModelBadge';
 import { toast } from '@/components/ui/toast';
@@ -164,7 +165,7 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
                   : 'border-line bg-bg2 text-fg2'
               }`}
             >
-              {summarizing ? <Spinner size={15} /> : <Sparkles size={15} />}
+              <Sparkles size={15} className={summarizing ? 'animate-pulse' : undefined} />
               <span>
                 {summarizing
                   ? 'Summarizing…'
@@ -199,7 +200,13 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
             </button>
           </div>
 
-          {/* Body */}
+          {/* Body. While the summary is being written the wait lives HERE,
+              where the text is going to appear — not as a glyph in the pill. */}
+          {summarizing && (
+            <div className="mt-5 rounded-2xl border border-line bg-bg2 p-4">
+              <AiWait variant="think" mode="lite" active status="Reading the article" />
+            </div>
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={showSummary ? 'summary' : 'full'}
@@ -313,7 +320,7 @@ function FollowUpChat({ article }: { article: Article }) {
         {messages.length > 0 && (
           <button
             onClick={clearAll}
-            className="flex items-center gap-1 text-xs text-fg3 hover:text-red-400"
+            className="tap-44 flex items-center gap-1 text-xs text-fg3 hover:text-red-400"
           >
             <Trash2 size={13} /> Clear
           </button>
@@ -346,45 +353,41 @@ function FollowUpChat({ article }: { article: Article }) {
         ))}
         {busy && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-bg2 px-4 py-3 text-fg3">
-              <Spinner size={15} /> Thinking…
+            <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-bg2 px-4 py-3">
+              <AiWait
+                variant={mode === 'lite' ? 'research' : 'think'}
+                mode={mode}
+                active
+                className="w-full"
+              />
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <ModelPicker
-        className="mt-3 flex flex-col gap-2"
-        provider={provider}
+      <AiComposer
+        testId="article-followup-composer"
+        className="mt-3"
+        value={input}
+        onValueChange={setInput}
+        onSubmit={send}
+        placeholder="Ask anything about this article…"
+        submitLabel="Send"
+        submitIcon={<Send size={18} />}
         mode={mode}
-        onProviderChange={setProvider}
-        onModeChange={setMode}
+        busy={busy}
+        onPasteText={(text) => setInput((q) => (q ? `${q} ${text}` : text))}
+        controls={
+          <ModelPicker
+            density="chips"
+            provider={provider}
+            mode={mode}
+            onProviderChange={setProvider}
+            onModeChange={setMode}
+          />
+        }
       />
-
-      <div className="mt-3 flex items-end gap-2">
-        <textarea
-          className="input max-h-32 min-h-[48px] flex-1 resize-none py-3"
-          placeholder="Ask anything about this article…"
-          rows={1}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={busy || !input.trim()}
-          className="btn-accent h-12 w-12 shrink-0 rounded-xl p-0"
-          aria-label="Send"
-        >
-          <Send size={18} />
-        </button>
-      </div>
     </div>
   );
 }

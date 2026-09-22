@@ -119,7 +119,7 @@ describe('Article follow-up — picked model reaches the backend', () => {
     await ask('q1');
     await waitFor(() => expect(followups().length).toBe(1));
 
-    fireEvent.click(screen.getByRole('button', { name: /xGrok/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /xGrok/i }));
     await ask('q2');
     await waitFor(() => expect(followups().length).toBe(2));
 
@@ -131,8 +131,8 @@ describe('Article follow-up — picked model reaches the backend', () => {
 
   it('switching to xGrok + Deep sends xgrokDeepModel only', async () => {
     renderReader();
-    fireEvent.click(screen.getByRole('button', { name: /xGrok/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^deep$/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /xGrok/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /^deep$/i }));
     await ask('q1');
     await waitFor(() => expect(followups().length).toBe(1));
 
@@ -146,9 +146,9 @@ describe('Article follow-up — picked model reaches the backend', () => {
   it('switching back Gemini + Deep sends deepModel only', async () => {
     renderReader();
     // go xGrok then back to Gemini, pick Deep
-    fireEvent.click(screen.getByRole('button', { name: /xGrok/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Gemini/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^deep$/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /xGrok/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /Gemini/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /^deep$/i }));
     await ask('q1');
     await waitFor(() => expect(followups().length).toBe(1));
 

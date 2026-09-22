@@ -51,7 +51,8 @@ function BankEditor({
         </p>
         <button
           onClick={onCancel}
-          className="rounded-full p-1 text-fg3 hover:bg-bg3 hover:text-fg"
+          aria-label="Cancel"
+          className="tap-44 rounded-full p-1 text-fg3 hover:bg-bg3 hover:text-fg"
         >
           <X size={16} />
         </button>
@@ -117,7 +118,7 @@ function BankEditor({
       <button
         onClick={onSave}
         disabled={nameInvalid}
-        className="mt-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+        className="mt-1 min-h-[44px] rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
       >
         {draft.id ? 'Save changes' : 'Add card'}
       </button>
@@ -162,14 +163,14 @@ function BankRow({
       </div>
       <button
         onClick={onEdit}
-        className="rounded-lg p-1.5 text-fg3 hover:bg-bg3 hover:text-fg"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-fg3 hover:bg-bg3 hover:text-fg"
         aria-label="Edit"
       >
         <Pencil size={15} />
       </button>
       <button
         onClick={onDelete}
-        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-500/10"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-rose-500 hover:bg-rose-500/10"
         aria-label="Delete"
       >
         <Trash2 size={15} />
@@ -249,7 +250,7 @@ export function BanksSection() {
       ) : (
         <button
           onClick={startAdd}
-          className="flex items-center justify-center gap-2 rounded-xl border border-accent/25 bg-accent/10 py-2.5 text-sm font-bold text-accent"
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-accent/25 bg-accent/10 py-2.5 text-sm font-bold text-accent"
         >
           <Plus size={16} /> Add bank / card
         </button>

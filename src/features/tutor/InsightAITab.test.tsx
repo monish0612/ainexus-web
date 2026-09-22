@@ -68,8 +68,10 @@ function renderTab() {
   );
 }
 
-function clickLast(name: RegExp) {
-  const els = screen.getAllByRole('button', { name });
+// The model picker is a radiogroup (Segmented), so provider/mode chips expose
+// role="radio" while Search/Send stay plain buttons.
+function clickLast(name: RegExp, role: 'button' | 'radio' = 'button') {
+  const els = screen.getAllByRole(role, { name });
   fireEvent.click(els[els.length - 1]);
 }
 
@@ -81,8 +83,8 @@ afterEach(() => cleanup());
 describe('Insight AI — search + multi-model follow-ups', () => {
   it('runs the initial search with the picked model (xGrok + Deep)', async () => {
     renderTab();
-    fireEvent.click(screen.getByRole('button', { name: /xGrok/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^deep$/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /xGrok/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /^deep$/i }));
 
     fireEvent.change(screen.getByPlaceholderText(/get a researched answer/i), {
       target: { value: 'who won?' },
@@ -109,8 +111,8 @@ describe('Insight AI — search + multi-model follow-ups', () => {
     expect(searches()[0].body).toMatchObject({ provider: 'gemini', mode: 'lite' });
 
     // Follow-up #1: switch to xGrok + Lite via the follow-up picker.
-    clickLast(/xGrok/i);
-    clickLast(/^lite$/i);
+    clickLast(/xGrok/i, 'radio');
+    clickLast(/^lite$/i, 'radio');
     fireEvent.change(screen.getByPlaceholderText(/ask a follow-up/i), {
       target: { value: 'verify with grok' },
     });
@@ -124,8 +126,8 @@ describe('Insight AI — search + multi-model follow-ups', () => {
     expect(followups()[0].body.deepModel).toBeUndefined();
 
     // Follow-up #2: switch to Gemini + Deep.
-    clickLast(/Gemini/i);
-    clickLast(/^deep$/i);
+    clickLast(/Gemini/i, 'radio');
+    clickLast(/^deep$/i, 'radio');
     fireEvent.change(screen.getByPlaceholderText(/ask a follow-up/i), {
       target: { value: 'now go deep' },
     });

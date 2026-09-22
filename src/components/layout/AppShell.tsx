@@ -4,6 +4,7 @@ import { Activity, Cloud, GraduationCap, Newspaper, Wallet } from 'lucide-react'
 import clsx from 'clsx';
 import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { spring } from '@/lib/motion';
 import { firstName } from '@/features/auth/authService';
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -26,7 +27,7 @@ function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-bg1/60 px-4 py-6 lg:flex">
       <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 font-black text-white">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 font-black text-white shadow-glow">
           N
         </div>
         <div>
@@ -41,7 +42,9 @@ function Sidebar() {
             to={to}
             className={({ isActive }) =>
               clsx(
-                'group relative flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition',
+                'group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-3 text-sm',
+                'font-semibold transition-colors duration-150 focus-visible:outline-none',
+                'focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.99]',
                 isActive
                   ? 'bg-bg3 text-fg'
                   : 'text-fg3 hover:bg-bg2 hover:text-fg',
@@ -53,10 +56,11 @@ function Sidebar() {
                 {isActive && (
                   <motion.span
                     layoutId="side-active"
+                    transition={spring.fast}
                     className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-accent"
                   />
                 )}
-                <Icon size={20} strokeWidth={2.2} />
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
                 {label}
               </>
             )}
@@ -65,7 +69,7 @@ function Sidebar() {
       </nav>
       <button
         onClick={openSettings}
-        className="mt-2 flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-fg3 transition hover:bg-bg2 hover:text-fg"
+        className="tap mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-fg3 transition-colors duration-150 hover:bg-bg2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <Avatar />
         <span>Settings</span>
@@ -79,10 +83,10 @@ function MobileHeader() {
   const location = useLocation();
   const title = NAV.find((n) => location.pathname.startsWith(n.to))?.label ?? 'Nexus AI';
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-[var(--header-bg)]/90 px-4 backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-[var(--header-bg)]/90 px-4 backdrop-blur-xl lg:hidden">
       <Avatar onClick={openSettings} />
-      <h1 className="text-base font-bold text-fg">{title}</h1>
-      <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-xs font-black text-white">
+      <h1 className="text-base font-bold tracking-tight text-fg">{title}</h1>
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-xs font-black text-white shadow-glow">
         N
       </div>
     </header>
@@ -91,28 +95,36 @@ function MobileHeader() {
 
 function BottomNav() {
   return (
-    <nav className="sticky bottom-0 z-40 flex h-16 items-stretch border-t border-line bg-[var(--nav-bg)] backdrop-blur lg:hidden">
+    // The inset padding is what keeps the last row of icons above the iOS home
+    // indicator / Android gesture bar once this is installed as a PWA.
+    <nav
+      className="sticky bottom-0 z-40 flex items-stretch border-t border-line bg-[var(--nav-bg)] backdrop-blur-xl lg:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       {NAV.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
           className={({ isActive }) =>
             clsx(
-              'relative flex flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold transition sm:text-[11px]',
-              isActive ? 'text-fg' : 'text-fg4',
+              'relative flex h-16 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px]',
+              'font-semibold transition-colors duration-150 active:scale-[0.94] sm:text-[11px]',
+              isActive ? 'text-fg' : 'text-fg3',
             )
           }
         >
           {({ isActive }) => (
             <>
-              <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
-              <span>{label}</span>
               {isActive && (
                 <motion.span
                   layoutId="bottom-active"
-                  className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent"
+                  transition={spring.fast}
+                  aria-hidden
+                  className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-accent"
                 />
               )}
+              <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
+              <span>{label}</span>
             </>
           )}
         </NavLink>

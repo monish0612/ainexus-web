@@ -164,14 +164,14 @@ export function TrackerTab({ onEdit }: { onEdit: (e: Expense) => void }) {
               <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
                 <button
                   onClick={() => onEdit(e)}
-                  className="rounded-lg p-2 text-fg3 hover:bg-bg3 hover:text-fg"
+                  className="grid h-11 w-11 place-items-center rounded-lg text-fg3 hover:bg-bg3 hover:text-fg"
                   aria-label="Edit"
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => del.mutate(e.id)}
-                  className="rounded-lg p-2 text-fg3 hover:bg-red-500/15 hover:text-red-400"
+                  className="grid h-11 w-11 place-items-center rounded-lg text-fg3 hover:bg-red-500/15 hover:text-red-400"
                   aria-label="Delete"
                 >
                   <Trash2 size={16} />

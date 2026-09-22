@@ -90,7 +90,9 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShow((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-fg4 transition hover:text-fg"
+              // `tap-44` keeps the 18px eye exactly where it is and grows only
+              // the hit area to the 44px minimum.
+              className="tap-44 absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-fg4 transition hover:text-fg"
               aria-label={show ? 'Hide password' : 'Show password'}
             >
               {show ? <EyeOff size={18} /> : <Eye size={18} />}

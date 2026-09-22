@@ -37,7 +37,13 @@ export const useProfilePhotoStore = create<ProfilePhotoState>((set, get) => ({
         return;
       }
       if (meta.sha256 && meta.sha256 === get().sha256 && get().url) return;
-      const blob = await fetchProfilePhotoBlob(meta.sha256);
+      // The validator has to describe the copy we ALREADY hold. Sending the
+      // sha the meta call just reported always matches the server's ETag, so
+      // the very first load would 304 with an empty body and the avatar would
+      // never appear. With our own sha the revalidation still short-circuits a
+      // re-download when nothing changed, and returns bytes when it did.
+      const held = get().url ? (get().sha256 ?? undefined) : undefined;
+      const blob = await fetchProfilePhotoBlob(held);
       if (!blob) return;
       revoke(get().url);
       set({
@@ -55,7 +61,9 @@ export const useProfilePhotoStore = create<ProfilePhotoState>((set, get) => ({
     try {
       const jpegBase64 = await encodeAvatarFile(file);
       const meta = await uploadProfilePhoto(jpegBase64);
-      const blob = await fetchProfilePhotoBlob(meta.sha256);
+      // Unconditional: we want the bytes we just uploaded, and a conditional
+      // GET carrying the sha the upload returned would always come back 304.
+      const blob = await fetchProfilePhotoBlob();
       revoke(get().url);
       set({
         url: blob ? URL.createObjectURL(blob) : get().url,

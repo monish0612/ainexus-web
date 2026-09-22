@@ -21,6 +21,25 @@ export default {
         line2: 'var(--border2)',
         accent: '#0D59F2',
         'accent-2': '#7C3AED',
+        // Accent as *text*: #0D59F2 is 3.73:1 on #000000 and fails AA, so text
+        // in the dark theme uses #5B8CFF instead. The fill stays #0D59F2.
+        'accent-text': 'var(--accent-text)',
+        // Mode identity. `*-edge` are the non-text (border / focus ring)
+        // variants that clear 3:1 on both themes.
+        lite: 'var(--mode-lite)',
+        'lite-edge': 'var(--mode-lite-edge)',
+        deep: 'var(--mode-deep)',
+        'deep-edge': 'var(--mode-deep-edge)',
+        think: 'var(--mode-thinking)',
+        'think-edge': 'var(--mode-thinking-edge)',
+        // Provider identity. Gemini is a gradient (see backgroundImage.gemini),
+        // xGrok is deliberately flat so the pair survives grayscale.
+        'gemini-from': 'var(--provider-gemini-from)',
+        'gemini-to': 'var(--provider-gemini-to)',
+        xgrok: 'var(--provider-xgrok)',
+      },
+      backgroundImage: {
+        gemini: 'var(--provider-gemini)',
       },
       fontFamily: {
         sans: [
@@ -36,7 +55,12 @@ export default {
       },
       boxShadow: {
         glow: '0 0 40px -8px rgba(13,89,242,0.45)',
-        card: '0 8px 30px -12px rgba(0,0,0,0.45)',
+        // Per-theme: the dark drop shadow goes muddy on white, so the white
+        // theme swaps in a soft cool-slate elevation. See index.css.
+        card: 'var(--shadow-card)',
+      },
+      spacing: {
+        'safe-b': 'env(safe-area-inset-bottom)',
       },
       keyframes: {
         shimmer: {
@@ -46,10 +70,15 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'digit-pop': {
+          '0%': { opacity: '0', transform: 'translateY(8px)', filter: 'blur(2px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.6s infinite',
         'fade-up': 'fade-up 0.3s ease-out',
+        'digit-pop': 'digit-pop 0.5s cubic-bezier(0.34, 1.45, 0.64, 1) both',
       },
     },
   },

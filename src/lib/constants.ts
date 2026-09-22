@@ -17,6 +17,21 @@ export const EXPENSE_CATEGORIES = [
   'Rent', 'Insurance', 'Gifts', 'Charity', 'Donation', 'Pets', 'Loan', 'Others',
 ] as const;
 
+/**
+ * The category list sent with an "Ask AI" expense question.
+ *
+ * This is NOT `EXPENSE_CATEGORIES`: Android sends `keywordRules.keys` from
+ * `lib/data/services/ai_categorize_service.dart`, which has a different order
+ * and deliberately omits `Others`. The backend prompt is written against that
+ * list, so the two clients must send the same thing.
+ */
+export const EXPENSE_AI_CATEGORIES = [
+  'Food', 'Grocery', 'Transport', 'Fuel', 'Travel', 'Entertainment',
+  'Subscription', 'Shopping', 'Electronics', 'Fashion', 'Bills', 'Rent',
+  'Insurance', 'Loan', 'Health', 'Medical', 'Education', 'Family', 'Friends',
+  'Personal', 'Investment', 'Gifts', 'Charity', 'Donation', 'Pets',
+] as const;
+
 export const INVESTMENT_CATEGORY = 'Investment';
 export function isInvestmentCategory(c?: string | null): boolean {
   return (c ?? '').trim().toLowerCase() === INVESTMENT_CATEGORY.toLowerCase();
@@ -72,6 +87,14 @@ export const NEWS_CAT_COLOR: Record<string, string> = {
 };
 /** Categories that ship the full article body (no auto AI summary). */
 export const NO_SUMMARIZE_CATEGORIES = new Set(['Movies', 'General']);
+
+/**
+ * Hard cap the backend puts on `articles[].content` for
+ * `POST /ai/summarize-articles-batch`. Anything longer is rejected with
+ * `articles.0.content: String must contain at most 4000 character(s)` before
+ * the model is ever called, so the client has to cut it first.
+ */
+export const NEWS_SUMMARY_CONTENT_LIMIT = 4000;
 
 // ── Tutor: rephrase platforms (mirrors AI_REPHRASE_PLATFORM_META) ─────────────
 

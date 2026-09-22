@@ -330,7 +330,10 @@ function IconBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex items-center justify-center rounded-full p-2 text-white/85 transition hover:bg-white/15 hover:text-white active:scale-95 ${className}`}
+      // Sized for real rather than with `tap-44`: these sit shoulder to
+      // shoulder, so overlapping invisible hit areas would steal each other's
+      // taps.
+      className={`flex h-11 w-11 items-center justify-center rounded-full p-2 text-white/85 transition hover:bg-white/15 hover:text-white active:scale-95 ${className}`}
     >
       {children}
     </button>

@@ -281,7 +281,7 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
                         setCategory(c);
                         setManualCat(true);
                       }}
-                      className="relative flex items-center gap-1.5 rounded-xl border px-2.5 py-2 text-left text-sm font-medium transition"
+                      className="tap-44 flex items-center gap-1.5 rounded-xl border px-2.5 py-2 text-left text-sm font-medium transition"
                       style={{
                         borderColor: active ? categoryColor(c) : 'var(--border)',
                         background: active ? `${categoryColor(c)}22` : 'var(--bg2)',
@@ -295,7 +295,7 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
                 })}
               </div>
               {manualCat && (
-                <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-fg2">
+                <label className="mt-2 flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-fg2">
                   <input
                     type="checkbox"
                     checked={teachAi}

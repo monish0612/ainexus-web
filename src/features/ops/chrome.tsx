@@ -139,7 +139,7 @@ export function Banner({
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:bg-bg3"
+          className="tap-44 inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:bg-bg3"
         >
           <RefreshCw size={13} /> Retry
         </button>

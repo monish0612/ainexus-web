@@ -41,7 +41,7 @@ function OpenStatement({ s }: { s: CardStatement }) {
         type="button"
         disabled={!canExpand}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 text-left disabled:cursor-default"
+        className="flex min-h-[44px] w-full items-center gap-2 text-left disabled:cursor-default"
       >
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
         <span className="flex-1 truncate font-bold text-fg">{s.bankName}</span>
@@ -79,7 +79,7 @@ function BillRow({ b }: { b: CardStatement }) {
         type="button"
         disabled={!canExpand}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1.5 text-left text-xs text-fg3 disabled:cursor-default"
+        className="flex min-h-[44px] w-full items-center gap-1.5 text-left text-xs text-fg3 disabled:cursor-default"
       >
         <CreditCard size={13} className="shrink-0 text-fg4" />
         <span className="flex-1 truncate">

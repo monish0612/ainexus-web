@@ -1,6 +1,7 @@
 import { api } from './client';
 import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { buildModelHints, ModelMode } from '@/lib/modelHints';
+import { NEWS_SUMMARY_CONTENT_LIMIT } from '@/lib/constants';
 
 export interface Article {
   id: string;
@@ -68,6 +69,28 @@ export async function markAllRead(ids: string[]): Promise<void> {
   await api.post('/news/mark-all-read', { ids });
 }
 
+/**
+ * Cut article text down to what the summarizer will accept, on the nearest
+ * paragraph → sentence → word boundary so the model never receives half a
+ * word. Falls back to a hard cut only when the text has no boundary at all.
+ */
+export function truncateForSummary(
+  text: string,
+  limit = NEWS_SUMMARY_CONTENT_LIMIT,
+): string {
+  if (text.length <= limit) return text;
+  const head = text.slice(0, limit);
+  const floor = limit * 0.6; // don't throw away most of the budget for a boundary
+  const paragraph = head.lastIndexOf('\n');
+  const sentence = head.lastIndexOf('. ');
+  const word = head.lastIndexOf(' ');
+  let cut = limit;
+  if (paragraph > floor) cut = paragraph;
+  else if (sentence > floor) cut = sentence + 1; // keep the full stop
+  else if (word > floor) cut = word;
+  return head.slice(0, cut).trimEnd();
+}
+
 /** On-demand single-article AI summary (reuses the batch endpoint). */
 export async function summarizeArticle(article: Article): Promise<string> {
   const { liteModel } = useSettingsStore.getState();
@@ -79,7 +102,11 @@ export async function summarizeArticle(article: Article): Promise<string> {
         title: article.title,
         source: article.source || '',
         category: article.category || '',
-        content: article.summaryMarkdown || article.excerpt || article.title,
+        // Full bodies routinely run past the cap; sending them 400s every time.
+        // Full bodies routinely run past the cap; sending them 400s every time.
+        content: truncateForSummary(
+          article.summaryMarkdown || article.excerpt || article.title,
+        ),
       },
     ],
   });

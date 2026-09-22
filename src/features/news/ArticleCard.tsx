@@ -74,7 +74,7 @@ export function ArticleCard({ article, onOpen, featured }: Props) {
               e.stopPropagation();
               toggleSave.mutate(article.id);
             }}
-            className={`rounded-lg p-1.5 transition ${
+            className={`tap-44 rounded-lg p-1.5 transition ${
               article.isSaved ? 'text-accent' : 'text-fg4 hover:text-fg'
             }`}
             aria-label={article.isSaved ? 'Unsave' : 'Save'}

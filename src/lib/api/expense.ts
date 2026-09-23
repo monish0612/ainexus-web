@@ -1,5 +1,6 @@
 import { api } from './client';
 import { uuid } from '@/lib/format';
+import { learningKeys } from '@/lib/learningKeys';
 
 export interface Expense {
   id: string;
@@ -31,6 +32,28 @@ export interface SalaryEntry {
 export async function fetchExpenses(): Promise<Expense[]> {
   const { data } = await api.get<Expense[]>('/expenses');
   return Array.isArray(data) ? data : [];
+}
+
+export interface ExpenseTombstone {
+  id: string;
+  deletedAt: string;
+}
+
+export async function fetchExpenseTombstones(since?: string): Promise<ExpenseTombstone[]> {
+  const { data } = await api.get<ExpenseTombstone[]>('/expenses/tombstones', {
+    params: since ? { since } : undefined,
+  });
+  return Array.isArray(data) ? data : [];
+}
+
+/** Drop ids the phone (or another browser) already deleted. */
+export function applyExpenseTombstones(
+  expenses: Expense[],
+  tombstones: ExpenseTombstone[],
+): Expense[] {
+  if (!tombstones.length) return expenses;
+  const dead = new Set(tombstones.map((t) => t.id).filter(Boolean));
+  return expenses.filter((e) => !dead.has(e.id));
 }
 
 export async function upsertExpense(e: Expense): Promise<void> {
@@ -85,11 +108,9 @@ export async function fetchLearnings(): Promise<Learning[]> {
 }
 
 export async function teachLearnings(description: string, category: string): Promise<void> {
-  const learnings = description
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 3)
-    .map((keyword) => ({ keyword, category }));
+  const cat = category.trim();
+  if (!cat || cat === 'Others') return;
+  const learnings = learningKeys(description).map((keyword) => ({ keyword, category: cat }));
   if (!learnings.length) return;
   await api.post('/category-learnings/batch', { learnings });
 }

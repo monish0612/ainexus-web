@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BudgetEntry,
   Expense,
+  ExpenseTombstone,
   SalaryEntry,
+  applyExpenseTombstones,
   deleteExpense,
   fetchBudgetHistory,
+  fetchExpenseTombstones,
   fetchExpenses,
   fetchSalaryHistory,
   setBudget,
@@ -17,9 +20,28 @@ import { apiErrorMessage } from '@/lib/api/client';
 const EXPENSES = ['expenses'];
 const BUDGET = ['budget'];
 const SALARY = ['salary'];
+const TOMB_KEY = 'nxs_expense_tomb_since';
 
 export function useExpenses() {
-  return useQuery({ queryKey: EXPENSES, queryFn: fetchExpenses });
+  return useQuery({
+    queryKey: EXPENSES,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const since = localStorage.getItem(TOMB_KEY) || undefined;
+      const [rows, tombs] = await Promise.all([
+        fetchExpenses(),
+        fetchExpenseTombstones(since).catch(() => [] as ExpenseTombstone[]),
+      ]);
+      const live = applyExpenseTombstones(rows, tombs);
+      const newest = tombs.reduce(
+        (m, t) => (t.deletedAt > m ? t.deletedAt : m),
+        since ?? '',
+      );
+      if (newest) localStorage.setItem(TOMB_KEY, newest);
+      return live;
+    },
+  });
 }
 
 export function useBudget() {

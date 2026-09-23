@@ -52,6 +52,24 @@ export function spendOnly(expenses: Expense[]): Expense[] {
   return expenses.filter((e) => !isNonSpendCategory(e.category));
 }
 
+/**
+ * Phone Tracker "This month" and the Insights budget ring: the calendar
+ * month containing [now], spend only. Phone Insights chips stay on their own
+ * windows (Week = 7 days, Month = 30 days) and are not this function.
+ */
+export function calendarMonthSpend(expenses: Expense[], now: Date = new Date()): number {
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  let total = 0;
+  for (const e of expenses) {
+    if (isNonSpendCategory(e.category)) continue;
+    const d = safeParseDate(e.date);
+    if (d == null) continue;
+    if (d >= start && d < end) total += e.amount;
+  }
+  return total;
+}
+
 export function inPeriod(
   expenses: Expense[],
   period: Period,

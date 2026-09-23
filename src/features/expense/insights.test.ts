@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import type { Expense } from '@/lib/api/expense';
-import { inPeriod, spendOnly, totalLoans, totalInvestments, type Period } from './insights';
+import {
+  calendarMonthSpend,
+  inPeriod,
+  spendOnly,
+  totalLoans,
+  totalInvestments,
+  type Period,
+} from './insights';
 
 // Fixed "now" away from month edges so the day math is unambiguous.
 const NOW = new Date('2026-07-15T10:30:00');
@@ -111,6 +118,24 @@ describe('totalLoans / totalInvestments — separated buckets', () => {
     ];
     const spent = spendOnly(inPeriod(all, '1m', NOW)).reduce((s, e) => s + e.amount, 0);
     expect(spent).toBe(10000);
+    expect(calendarMonthSpend(all, NOW)).toBe(10000);
     expect(totalLoans(all)).toBe(50000);
+  });
+});
+
+describe('calendarMonthSpend — phone Tracker month, not Insights chips', () => {
+  it('counts only this calendar month and drops Investment, Loan, future, and bad dates', () => {
+    const all = [
+      exp('early', '2026-07-02T12:00:00'),
+      exp('prev', '2026-06-20T12:00:00'),
+      exp('inv', '2026-07-03T12:00:00', 'Investment'),
+      exp('loan', '2026-07-04T12:00:00', 'Loan'),
+      exp('future', '2026-08-01T12:00:00'),
+      exp('bad', 'not-a-date'),
+    ];
+    expect(calendarMonthSpend(all, NOW)).toBe(100);
+    // Rolling Insights "1m" still includes 20 June. Phone Insights "Month" is
+    // its own 30-day chip and is not this Tracker total.
+    expect(has(scoped(all, '1m'), 'prev')).toBe(true);
   });
 });

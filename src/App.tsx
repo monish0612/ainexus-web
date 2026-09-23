@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useProfilePhotoStore } from './store/profilePhotoStore';
+import { queryClient } from './lib/query';
+import { getDataReset } from './lib/api/settings';
 import { AppShell } from './components/layout/AppShell';
 import { ToastViewport } from './components/ui/toast';
 import { Spinner } from './components/ui/primitives';
@@ -39,6 +41,26 @@ export default function App() {
     if (authed) {
       syncFromServer();
       void hydratePhoto();
+      void (async () => {
+        try {
+          const epoch = await getDataReset();
+          const seen = localStorage.getItem('nxs_reset_full');
+          const prevFull = Number(seen ?? '0');
+          const prevExp = Number(localStorage.getItem('nxs_reset_expense') ?? '0');
+          localStorage.setItem('nxs_reset_full', String(epoch.fullGen ?? 0));
+          localStorage.setItem('nxs_reset_expense', String(epoch.expenseGen ?? 0));
+          if (seen == null) return;
+          if ((epoch.fullGen ?? 0) > prevFull || (epoch.expenseGen ?? 0) > prevExp) {
+            localStorage.removeItem('nxs_expense_tomb_since');
+            queryClient.removeQueries({ queryKey: ['expenses'] });
+            queryClient.removeQueries({ queryKey: ['budget'] });
+            queryClient.removeQueries({ queryKey: ['salary'] });
+            queryClient.removeQueries({ queryKey: ['learnings'] });
+          }
+        } catch {
+          /* a reset check must not block the app */
+        }
+      })();
     } else {
       resetPhoto();
     }

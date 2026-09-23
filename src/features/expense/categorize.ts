@@ -1,6 +1,9 @@
+import { matchLearning } from '@/lib/learningKeys';
+
 // Local-first keyword categorization — instant, offline, zero AI cost.
 // A trimmed port of the rules in lib/data/services/ai_categorize_service.dart;
 // the backend /ai/categorize is the fallback for misses.
+// Taught keys (phone or web Teach AI) win before these aliases.
 const KEYWORD_RULES: Record<string, string> = {};
 
 function add(category: string, keywords: string[]) {
@@ -22,10 +25,16 @@ add('Fashion', ['clothing', 'shoes', 'apparel', 'fashion', 'zara', 'h&m', 'uniql
 add('Rent', ['rent', 'lease', 'landlord']);
 add('Investment', ['mutual fund', 'sip', 'stocks', 'zerodha', 'groww', 'investment', 'fd', 'nps']);
 add('Education', ['course', 'udemy', 'coursera', 'tuition', 'school', 'college', 'books', 'fees']);
+add('Family', ['firstcry', 'babyhug', 'hopscotch', 'mothercare', 'hamleys', 'diaper', 'daycare']);
 
-export function categorizeLocal(description: string): string | null {
+export function categorizeLocal(
+  description: string,
+  learnings: Record<string, string> = {},
+): string | null {
   const text = (description || '').toLowerCase();
   if (!text.trim()) return null;
+  const taught = matchLearning(description, learnings);
+  if (taught) return taught;
   for (const [keyword, category] of Object.entries(KEYWORD_RULES)) {
     if (text.includes(keyword)) return category;
   }

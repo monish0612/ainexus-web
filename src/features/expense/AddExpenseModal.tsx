@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ScanLine, Sparkles, Upload } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
@@ -15,14 +16,13 @@ import {
 import { toNaiveLocalIso, uuid, safeParseDate } from '@/lib/format';
 import { apiErrorMessage } from '@/lib/api/client';
 import { categorize, smartParseImage } from '@/lib/api/ai';
-import { Expense } from '@/lib/api/expense';
+import { Expense, fetchLearnings, teachLearnings } from '@/lib/api/expense';
 import { useSettingsStore, type Bank } from '@/store/settingsStore';
 import { cardBillTimingFor } from '@/lib/creditCardForecast';
 import { CalendarClock } from 'lucide-react';
 import { categorizeLocal } from './categorize';
 import { fileToReceiptPayload } from './receipt';
 import { useUpsertExpense } from './hooks';
-import { teachLearnings } from '@/lib/api/expense';
 
 interface Props {
   open: boolean;
@@ -84,6 +84,22 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
   const [scanning, setScanning] = useState(false);
   const [catLoading, setCatLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const { data: learnings = [] } = useQuery({
+    queryKey: ['learnings'],
+    queryFn: fetchLearnings,
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const learningMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const row of learnings) {
+      if (row.keyword && row.category && row.category !== 'Others') {
+        map[row.keyword.toLowerCase()] = row.category;
+      }
+    }
+    return map;
+  }, [learnings]);
 
   // Reset / hydrate when opened.
   useEffect(() => {
@@ -127,7 +143,7 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
   // Live categorize (local first, debounced AI fallback) while typing.
   useEffect(() => {
     if (manualCat || editing) return;
-    const local = categorizeLocal(description);
+    const local = categorizeLocal(description, learningMap);
     if (local) {
       setCategory(local);
       return;
@@ -146,7 +162,7 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
     }, 700);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [description, manualCat]);
+  }, [description, manualCat, learningMap]);
 
   const valid = useMemo(
     () => parseFloat(amount) > 0 && description.trim().length > 0,
@@ -189,7 +205,9 @@ export function AddExpenseModal({ open, onClose, editing }: Props) {
     };
     await upsert.mutateAsync(expense);
     if (teachAi && manualCat) {
-      teachLearnings(expense.description, category).catch(() => {});
+      teachLearnings(expense.description, category)
+        .then(() => qc.invalidateQueries({ queryKey: ['learnings'] }))
+        .catch(() => {});
     }
     toast.success(editing ? 'Expense updated' : 'Expense added');
     onClose();

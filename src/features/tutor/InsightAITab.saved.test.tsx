@@ -121,19 +121,14 @@ describe('InsightAI — saved search + follow-up persistence', () => {
     fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
     await screen.findByText('Chennai is sunny.');
 
-    // 2. Follow-up BEFORE saving (lives only in memory until Save).
+    // 2. The first follow-up saves the parent immediately so the phone
+    //    can list the same conversation, then stores both chat turns.
     fireEvent.change(screen.getByPlaceholderText(/ask a follow-up/i), {
       target: { value: 'what about tomorrow?' },
     });
     clickLast(/^send$/i);
     await screen.findByText('Tomorrow: rain.');
-    // Nothing persisted yet (no parent row, no chat).
-    expect(h.searches).toHaveLength(0);
 
-    // 3. Save.
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-
-    // Parent persisted in the grounded shape with the answer embedded.
     await waitFor(() => expect(h.searches).toHaveLength(1));
     const saved = h.searches[0];
     expect(saved.responseType).toBe('grounded');

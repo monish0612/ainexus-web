@@ -12,7 +12,7 @@ import {
   useExpenses,
   useSetBudget,
 } from './hooks';
-import { inPeriod, spendOnly, totalInvestments, totalLoans } from './insights';
+import { calendarMonthSpend, totalInvestments, totalLoans } from './insights';
 
 function Ring({ fraction, color }: { fraction: number; color: string }) {
   const r = 52;
@@ -45,8 +45,7 @@ export function TrackerTab({ onEdit }: { onEdit: (e: Expense) => void }) {
   const [query, setQuery] = useState('');
   const [budgetOpen, setBudgetOpen] = useState(false);
 
-  const thisMonth = useMemo(() => spendOnly(inPeriod(expenses, '1m')), [expenses]);
-  const spent = thisMonth.reduce((s, e) => s + e.amount, 0);
+  const spent = useMemo(() => calendarMonthSpend(expenses), [expenses]);
   const investments = useMemo(() => totalInvestments(expenses), [expenses]);
   const loans = useMemo(() => totalLoans(expenses), [expenses]);
 

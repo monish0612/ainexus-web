@@ -8,6 +8,7 @@ import {
   Circle,
   ExternalLink,
   Send,
+  Share2,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ import {
 import { uuid } from '@/lib/format';
 import { persist } from '@/lib/api/persistQueue';
 import { useMarkRead, useToggleSave } from './hooks';
+import { formatArticleShareText, presentShare, ShareTurn } from '@/lib/shareText';
 
 interface Props {
   article: Article | null;
@@ -71,6 +73,7 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
   // Read state is driven by an explicit "Mark read" action (like the Android
   // app) — NOT by simply opening the article. Saving never marks it read.
   const [read, setRead] = useState(article.isRead);
+  const [shareMessages, setShareMessages] = useState<ShareTurn[]>([]);
 
   function onMarkRead() {
     if (read) return; // already read → the "Done" pill is a no-op, as on Android
@@ -175,6 +178,28 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
               </span>
             </button>
 
+            <button
+              onClick={() => {
+                const text = formatArticleShareText({
+                  title: article.title,
+                  source: article.source,
+                  date: article.publishedAt || article.date || undefined,
+                  url: article.originalUrl,
+                  snapshot: article.excerpt,
+                  messages: shareMessages,
+                });
+                void presentShare(text, article.title).then((kind) => {
+                  if (kind === 'copied') toast.info('Copied share text');
+                  if (kind === 'failed') toast.error('Could not share');
+                });
+              }}
+              className="pill border border-line bg-bg2 text-fg2"
+              aria-label="Share article"
+            >
+              <Share2 size={15} />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+
             {article.originalUrl && (
               <a
                 href={article.originalUrl}
@@ -225,13 +250,19 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
           </AnimatePresence>
 
           {/* Follow-up chat */}
-          <FollowUpChat article={article} />
+          <FollowUpChat article={article} onMessages={setShareMessages} />
       </div>
     </div>
   );
 }
 
-function FollowUpChat({ article }: { article: Article }) {
+function FollowUpChat({
+  article,
+  onMessages,
+}: {
+  article: Article;
+  onMessages: (messages: ShareTurn[]) => void;
+}) {
   const { data: serverMsgs } = useQuery({
     queryKey: ['article-chats', article.id],
     queryFn: () => fetchArticleChats(article.id),
@@ -251,6 +282,10 @@ function FollowUpChat({ article }: { article: Article }) {
   useEffect(() => {
     if (serverMsgs) setMessages(serverMsgs);
   }, [serverMsgs]);
+
+  useEffect(() => {
+    onMessages(messages.map((m) => ({ role: m.role, text: m.text })));
+  }, [messages, onMessages]);
 
   useEffect(() => {
     if (!interacted.current) return;

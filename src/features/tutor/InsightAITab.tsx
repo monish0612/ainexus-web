@@ -9,6 +9,7 @@ import {
   ScanSearch,
   Search,
   Send,
+  Share2,
   Sparkles,
   Telescope,
   Trash2,
@@ -20,6 +21,7 @@ import { ModelPicker } from '@/components/ui/ModelPicker';
 import { ModelBadge } from '@/components/ui/ModelBadge';
 import { Markdown } from '@/components/ui/Markdown';
 import { toast } from '@/components/ui/toast';
+import { formatSearchShareText, presentShare } from '@/lib/shareText';
 import { standard, usePrefersReducedMotion } from '@/lib/motion';
 import { useSettingsStore, Provider } from '@/store/settingsStore';
 import { apiErrorMessage } from '@/lib/api/client';
@@ -167,6 +169,8 @@ export function InsightAITab() {
   const { data: savedSearches = [] } = useQuery({
     queryKey: ['saved-searches'],
     queryFn: fetchSavedSearches,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const del = useMutation({
@@ -253,6 +257,27 @@ export function InsightAITab() {
     }
   }
 
+  async function ensureShared(): Promise<string | null> {
+    if (savedId) return savedId;
+    if (!result) return null;
+    try {
+      const id = await saveSearch({
+        id: sessionId,
+        query: activeQuery,
+        title: activeQuery.slice(0, 80),
+        result,
+        mode,
+        provider,
+      });
+      setSavedId(id);
+      qc.invalidateQueries({ queryKey: ['saved-searches'] });
+      return id;
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not save'));
+      return null;
+    }
+  }
+
   async function sendFollow() {
     const q = followInput.trim();
     if (!q || followBusy || !result) return;
@@ -265,7 +290,10 @@ export function InsightAITab() {
     };
     setChat((c) => [...c, userMsg]);
     setFollowBusy(true);
-    if (savedId) persist('saved-search-chat', () => saveSearchChat(savedId, userMsg));
+    // Save the parent on the first follow-up so the phone History list
+    // can open the same conversation. Later turns reuse that id.
+    const sharedId = await ensureShared();
+    if (sharedId) persist('saved-search-chat', () => saveSearchChat(sharedId, userMsg));
     try {
       const history = [
         { role: 'assistant', text: result.answer },
@@ -287,7 +315,7 @@ export function InsightAITab() {
         created_at: new Date().toISOString(),
       };
       setChat((c) => [...c, aiMsg]);
-      if (savedId) persist('saved-search-chat', () => saveSearchChat(savedId, aiMsg));
+      if (sharedId) persist('saved-search-chat', () => saveSearchChat(sharedId, aiMsg));
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Follow-up failed'));
       setChat((c) => c.filter((m) => m.id !== userMsg.id));
@@ -455,14 +483,35 @@ export function InsightAITab() {
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-accent-text">
                   <Sparkles size={15} /> Answer
                 </span>
-                <Button
-                  variant="ghost"
-                  onClick={onSave}
-                  disabled={!!savedId}
-                  className="px-3 py-1.5 text-xs"
-                >
-                  <Bookmark size={14} /> {savedId ? 'Saved' : 'Save'}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      const text = formatSearchShareText({
+                        query: activeQuery,
+                        model: result.model,
+                        response: result.answer,
+                        messages: chat.map((m) => ({ role: m.role, text: m.text })),
+                      });
+                      void presentShare(text, activeQuery).then((kind) => {
+                        if (kind === 'copied') toast.info('Copied share text');
+                        if (kind === 'failed') toast.error('Could not share');
+                      });
+                    }}
+                    className="px-3 py-1.5 text-xs"
+                    aria-label="Share search"
+                  >
+                    <Share2 size={14} /> Share
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={onSave}
+                    disabled={!!savedId}
+                    className="px-3 py-1.5 text-xs"
+                  >
+                    <Bookmark size={14} /> {savedId ? 'Saved' : 'Save'}
+                  </Button>
+                </div>
               </div>
               <Markdown>{result.answer}</Markdown>
               <ModelBadge model={result.model} sources={result.sources.length} />

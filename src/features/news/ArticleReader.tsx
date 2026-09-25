@@ -38,6 +38,7 @@ import { uuid } from '@/lib/format';
 import { persist } from '@/lib/api/persistQueue';
 import { useMarkRead, useToggleSave } from './hooks';
 import { formatArticleShareText, presentShare, ShareTurn } from '@/lib/shareText';
+import { NarrationBar } from './NarrationBar';
 
 interface Props {
   article: Article | null;
@@ -106,6 +107,7 @@ function ReaderBody({ article, onClose }: { article: Article; onClose: () => voi
 
   return (
     <div>
+      <NarrationBar articleId={article.id} title={article.title} text={article.summaryMarkdown || article.title} />
       {/* Hero */}
       {article.imageUrl && (
         <button

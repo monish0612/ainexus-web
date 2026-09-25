@@ -56,7 +56,7 @@ export function NarrationBar({ articleId, text, title }: { articleId: string; te
       await advance(job);
       if (job.complete && played.current >= (job.chunks || []).length) break;
       if (job.chunk_error || job.status === 'failed') break;
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 175));
     }
   }
 

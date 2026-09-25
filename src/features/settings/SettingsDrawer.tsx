@@ -300,6 +300,21 @@ export function SettingsDrawer({ open, onClose }: Props) {
                 </Section>
 
                 <Section
+                  title="Narration model"
+                  subtitle="Article listen. Flash and Flash-Lite only."
+                >
+                  <select
+                    className="input"
+                    value={s.narrationModel}
+                    onChange={(e) => s.set('narrationModel', e.target.value)}
+                  >
+                    {['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'].map((id) => (
+                      <option key={id} value={id}>{id}</option>
+                    ))}
+                  </select>
+                </Section>
+
+                <Section
                   title="Gemini lite model"
                   subtitle="Fast tasks: categorize, rephrase, summarize, define"
                 >

@@ -124,6 +124,7 @@ export const REPHRASE_PLATFORMS: RephrasePlatform[] = [
 export const DEFAULT_MODELS = {
   deepModel: 'gemini-3.1-pro-preview',
   liteModel: 'gemini-3.1-flash-lite-preview',
+  narrationModel: 'gemini-2.5-flash-lite',
   xgrokLiteModel: 'grok-4-1-fast-non-reasoning',
   xgrokDeepModel: 'grok-4-0709',
   xgrokThinkingModel: 'grok-4-1-fast-reasoning',

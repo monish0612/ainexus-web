@@ -57,6 +57,7 @@ export interface SettingsState {
   banks: Bank[];
   deepModel: string;
   liteModel: string;
+  narrationModel: string;
   xgrokEnabled: boolean;
   xgrokLiteModel: string;
   xgrokDeepModel: string;
@@ -88,6 +89,7 @@ const KEY_MAP: Record<string, keyof SettingsState> = {
   app_theme: 'theme',
   deep_model: 'deepModel',
   lite_model: 'liteModel',
+  narration_model: 'narrationModel',
   xgrok_enabled: 'xgrokEnabled',
   xgrok_lite_model: 'xgrokLiteModel',
   xgrok_deep_model: 'xgrokDeepModel',
@@ -106,6 +108,7 @@ const DEFAULTS: SettingsState = {
   banks: DEFAULT_BANKS,
   deepModel: DEFAULT_MODELS.deepModel,
   liteModel: DEFAULT_MODELS.liteModel,
+  narrationModel: DEFAULT_MODELS.narrationModel,
   xgrokEnabled: false,
   xgrokLiteModel: DEFAULT_MODELS.xgrokLiteModel,
   xgrokDeepModel: DEFAULT_MODELS.xgrokDeepModel,

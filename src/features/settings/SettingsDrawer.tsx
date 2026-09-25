@@ -314,6 +314,20 @@ export function SettingsDrawer({ open, onClose }: Props) {
                   </select>
                 </Section>
 
+                <Section title="Narration voice model" subtitle="Chirp about $0.02 after the free tier. Gemini TTS about $0.05. On-device is free.">
+                  <select className="input" value={s.narrationTtsModel} onChange={(e) => s.set('narrationTtsModel', e.target.value)}>
+                    <option value="chirp3-hd">Chirp 3 HD</option>
+                    <option value="gemini-2.5-flash-preview-tts">Gemini Flash TTS</option>
+                    <option value="on-device">On-device (free)</option>
+                  </select>
+                  <select className="input mt-2" value={s.narrationVoice} onChange={(e) => s.set('narrationVoice', e.target.value)}>
+                    {(s.narrationTtsModel === 'gemini-2.5-flash-preview-tts'
+                      ? ['Charon', 'Kore', 'Aoede']
+                      : ['en-US-Chirp3-HD-Charon', 'en-US-Chirp3-HD-Kore', 'en-US-Chirp3-HD-Aoede']
+                    ).map((id) => <option key={id} value={id}>{id}</option>)}
+                  </select>
+                </Section>
+
                 <Section
                   title="Gemini lite model"
                   subtitle="Fast tasks: categorize, rephrase, summarize, define"

@@ -58,6 +58,8 @@ export interface SettingsState {
   deepModel: string;
   liteModel: string;
   narrationModel: string;
+  narrationTtsModel: string;
+  narrationVoice: string;
   xgrokEnabled: boolean;
   xgrokLiteModel: string;
   xgrokDeepModel: string;
@@ -90,6 +92,8 @@ const KEY_MAP: Record<string, keyof SettingsState> = {
   deep_model: 'deepModel',
   lite_model: 'liteModel',
   narration_model: 'narrationModel',
+  narration_tts_model: 'narrationTtsModel',
+  narration_voice: 'narrationVoice',
   xgrok_enabled: 'xgrokEnabled',
   xgrok_lite_model: 'xgrokLiteModel',
   xgrok_deep_model: 'xgrokDeepModel',
@@ -109,6 +113,8 @@ const DEFAULTS: SettingsState = {
   deepModel: DEFAULT_MODELS.deepModel,
   liteModel: DEFAULT_MODELS.liteModel,
   narrationModel: DEFAULT_MODELS.narrationModel,
+  narrationTtsModel: 'chirp3-hd',
+  narrationVoice: 'en-US-Chirp3-HD-Charon',
   xgrokEnabled: false,
   xgrokLiteModel: DEFAULT_MODELS.xgrokLiteModel,
   xgrokDeepModel: DEFAULT_MODELS.xgrokDeepModel,
